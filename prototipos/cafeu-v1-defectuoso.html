@@ -1,0 +1,412 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="CaféU versión 1 (prototipo navegable con errores deliberados) para la actividad G3 de prototipado.">
+  <title>CaféU | Versión 1 (prototipo para revisión)</title>
+  <script>
+    if (new URLSearchParams(window.location.search).get('vista') === 'lamina') {
+      document.documentElement.classList.add('lamina');
+    }
+  </script>
+  <style>
+    :root {
+      color-scheme: light;
+      --crema: #faf6f0;
+      --sup: #ffffff;
+      --cafe: #3e2723;
+      --cafe-2: #5d4037;
+      --caramelo: #d84315;
+      /* Defecto E10: textos y bordes con muy bajo contraste */
+      --texto: #b9ada1;
+      --suave: #cabfb2;
+      --borde: #efe6da;
+      font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, system-ui, sans-serif;
+      color: var(--texto);
+      background: var(--crema);
+      font-synthesis: none;
+    }
+    * { box-sizing: border-box; }
+    [hidden] { display: none !important; }
+    body { margin: 0; background: var(--crema); }
+    main { margin: 0 auto; max-width: 1360px; padding: 34px 26px 52px; }
+    .page-head { margin: 0 auto 26px; max-width: 820px; text-align: center; }
+    .eyebrow { color: #a89a8c; font-size: .74rem; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; }
+    h1 { font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, system-ui, sans-serif; font-weight: 800; color: #7a6a5a; font-size: clamp(2rem, 4vw, 3rem); letter-spacing: -.02em; margin: .3em 0 .15em; }
+    .page-head p { color: #8f8072; line-height: 1.6; margin: .5em 0; }
+    .notice { background: var(--sup); border: 1px solid #e6dccd; border-left: 4px solid #d9c9b3; border-radius: 12px; margin: 20px auto 0; max-width: 720px; padding: 12px 16px; text-align: left; font-size: .9rem; line-height: 1.55; }
+    .notice-lamina { display: none; }
+    html.lamina .notice-app { display: none; }
+    html.lamina .notice-lamina { display: block; }
+
+    .stage { align-items: start; display: grid; gap: 22px; justify-items: center; grid-template-columns: 1fr; }
+    .screen-card { display: none; max-width: 420px; width: 100%; }
+    .screen-card.is-active { display: block; }
+    .screen-card h2 { color: #a3958a; font-size: .8rem; letter-spacing: .06em; margin: 0 0 10px; text-align: center; text-transform: uppercase; }
+
+    .screen { background: var(--sup); border: 9px solid var(--cafe); border-radius: 34px; box-shadow: 0 16px 34px rgba(62,39,35,.14); display: flex; flex-direction: column; height: 640px; overflow: hidden; position: relative; }
+    .statusbar { align-items: center; color: #c6b8aa; display: flex; font-size: .62rem; font-weight: 700; justify-content: space-between; padding: 8px 20px 2px; }
+    .topbar { align-items: center; border-bottom: 1px solid var(--borde); color: #c3b6a8; display: flex; font-size: .72rem; font-weight: 750; gap: 8px; justify-content: space-between; padding: 10px 16px 12px; }
+    .topbar .back { background: none; border: 0; color: #b3a497; cursor: pointer; font: inherit; font-weight: 750; padding: 0; text-align: left; }
+    /* Defecto E7: control de carrito solo con icono y muy pequeño */
+    .badge { background: var(--sup); border: 1px solid var(--borde); border-radius: 999px; color: #b3a497; cursor: pointer; font: inherit; font-size: .62rem; padding: 3px 6px; }
+    .vista { flex: 1; overflow: auto; padding: 16px; }
+    .vista::-webkit-scrollbar { width: 0; }
+    .tabbar { border-top: 1px solid var(--borde); display: flex; }
+
+    .heading { color: #a3948a; font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, system-ui, sans-serif; font-weight: 700; font-size: 1.08rem; margin: 4px 0 10px; }
+    .muted { color: var(--suave); font-size: .78rem; line-height: 1.45; }
+    .hint { color: #cdc2b6; font-size: .68rem; }
+    .center { text-align: center; }
+    .divider { border: 0; border-top: 1px solid var(--borde); margin: 14px 0; }
+    .placeholder { background: repeating-linear-gradient(135deg, #efe8dc, #efe8dc 8px, #f7f2ea 8px, #f7f2ea 16px); border: 1px solid #ece1d2; border-radius: 12px; min-height: 96px; }
+    .placeholder.small { min-height: 50px; }
+    .placeholder.avatar { border-radius: 50%; height: 54px; margin: 0 auto 12px; min-height: 0; width: 54px; }
+
+    input.field { background: var(--sup); border: 1px solid var(--borde); border-radius: 999px; color: #b3a497; font-family: inherit; font-size: .76rem; padding: 8px 12px; width: 100%; }
+    input.field::placeholder { color: #cdc2b6; }
+    .field { margin: 11px 0; }
+    /* Defecto E8: la cantidad se escribe en un campo de texto sin etiqueta */
+    input.cantidad { background: var(--sup); border: 1px solid var(--borde); border-radius: 6px; color: #b3a497; font-family: inherit; font-size: .7rem; padding: 3px 6px; width: 64px; }
+
+    .item { border: 1px solid var(--borde); border-radius: 12px; margin: 9px 0; padding: 10px; }
+    .item h3 { color: #b0a294; font-size: .8rem; margin: 0 0 4px; }
+    .item p { color: var(--suave); font-size: .7rem; line-height: 1.35; margin: 3px 0; }
+    .row { align-items: center; display: flex; gap: 8px; justify-content: space-between; }
+
+    button.control { cursor: pointer; font-family: inherit; width: 100%; }
+    /* Defecto E7: botones diminutos y sin jerarquía clara */
+    .control { background: #f4ede3; border: 1px solid var(--borde); border-radius: 5px; color: #a99b8e; display: block; font-size: .6rem; font-weight: 700; margin-top: 11px; padding: 4px; text-align: center; }
+    .control.secondary { background: var(--sup); }
+    .control.tiny { display: inline-block; font-size: .56rem; margin: 10px 0 0; padding: 2px 5px; width: auto; }
+    button.link-btn { background: none; border: 0; color: #cdc2b6; cursor: pointer; font: inherit; font-size: .6rem; padding: 0; text-decoration: underline; }
+    .total { color: #ab9d90; font-size: .88rem; font-weight: 750; }
+
+    .page-foot { color: #8f8072; font-size: .8rem; margin: 26px auto 0; max-width: 820px; text-align: center; }
+    .page-foot p { margin: .4em 0; }
+    .page-foot a { color: #9c8d7e; }
+    .foot-lamina { display: none; }
+    html.lamina .foot-app { display: none; }
+    html.lamina .foot-lamina { display: block; }
+    /* Defecto E11: no se define ningún estilo de foco visible */
+    :focus { outline: none; }
+
+    html.lamina .stage { gap: 14px; grid-template-columns: repeat(5, minmax(0, 1fr)); }
+    html.lamina .screen-card { display: block; max-width: none; width: auto; }
+    html.lamina .screen { border-width: 5px; border-radius: 20px; box-shadow: none; height: auto; }
+    html.lamina .vista { overflow: visible; }
+
+    @media screen and (max-width: 1080px) { html.lamina .stage { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+    @media screen and (max-width: 700px) {
+      main { padding: 26px 14px 40px; }
+      html.lamina .stage { gap: 14px 12px; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .screen { height: 580px; }
+    }
+    @media screen and (max-width: 430px) { html.lamina .stage { grid-template-columns: 1fr; } }
+
+    @media print {
+      @page { size: landscape; margin: 9mm; }
+      body, :root { background: #fff; }
+      main { max-width: none; padding: 0; }
+      .page-head { margin: 0 auto 8px; }
+      .page-head h1 { font-size: 1.5rem; margin: .1em 0; }
+      .page-head p { font-size: 8px; line-height: 1.25; margin: 3px 0; }
+      .eyebrow { font-size: 7px; }
+      .notice { font-size: 8px; margin-top: 5px; padding: 5px 8px; }
+      .stage { align-items: start; display: grid; gap: 7px; grid-template-columns: repeat(5, minmax(0, 1fr)); }
+      .stage .screen-card { display: block; max-width: none; width: auto; }
+      .screen-card h2 { font-size: 8px; margin: 0 0 3px; }
+      .screen { border-width: 4px; border-radius: 16px; box-shadow: none; height: auto; }
+      .statusbar { display: none; }
+      .topbar { font-size: 7px; padding: 4px 7px 6px; }
+      .badge { font-size: 6px; padding: 2px 4px; }
+      .vista { overflow: visible; padding: 7px; }
+      .muted, .item p, button.link-btn, .hint { font-size: 6.5px; line-height: 1.25; }
+      .heading { font-size: 10px; margin: 3px 0 5px; }
+      .placeholder { min-height: 34px; }
+      .field { font-size: 7px; margin: 5px 0; padding: 4px 7px; }
+      .item { border-radius: 8px; margin: 5px 0; padding: 5px; }
+      .item h3 { font-size: 7px; }
+      .control { font-size: 6.5px; margin-top: 5px; padding: 4px; }
+      .control.tiny { margin-top: 2px; padding: 2px 4px; }
+      .tabbar { display: none; }
+      .divider { margin: 6px 0; }
+      .total { font-size: 8px; }
+      .page-foot { font-size: 7px; margin-top: 6px; }
+      .foot-app, .foot-lamina { display: none !important; }
+      * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <header class="page-head">
+      <p class="eyebrow">APE · G3 · Técnicas y herramientas de prototipado</p>
+      <h1>CaféU: versión 1</h1>
+      <p>Recorre el prototipo de baja fidelidad como si fuera la primera vez que lo usas. Intenta pedir un café y confirmarlo.</p>
+      <div class="notice notice-app"><strong>Versión para revisión.</strong> Ábrelo, intenta completar un pedido y anota todo lo que no entiendas o te haga dudar. Después responde: ¿qué errores impedirían que este prototipo fuera comprendido por un usuario nuevo?</div>
+      <div class="notice notice-lamina"><strong>Lámina de la versión 1.</strong> Las cinco pantallas del recorrido, en orden, tal como se presentaron para la revisión.</div>
+    </header>
+
+    <div class="stage" id="stage">
+      <article class="screen-card" data-pantalla="inicio" aria-labelledby="t-inicio">
+        <h2 id="t-inicio">1. Inicio</h2>
+        <div class="screen">
+          <div class="statusbar"><span>9:41</span><span>◆</span></div>
+          <div class="topbar">
+            <span>CaféU</span>
+            <button type="button" class="badge" data-ir="pedido" title="Carrito">&#128722;</button>
+          </div>
+          <div class="vista">
+            <div class="placeholder"></div>
+            <h3 class="heading">Bienvenido</h3>
+            <p class="muted">Presiona el botón para ver cosas.</p>
+            <button type="button" class="control" data-ir="menu">Continuar</button>
+          </div>
+          <div class="tabbar">
+            <button type="button" class="badge" data-ir="menu">sig</button>
+            <button type="button" class="badge" data-ir="pedido"><span>&#128722;</span></button>
+          </div>
+        </div>
+        <p class="annotation" style="color:#8f8072;font-size:.76rem">Pantalla de inicio.</p>
+      </article>
+
+      <article class="screen-card" data-pantalla="menu" aria-labelledby="t-menu">
+        <h2 id="t-menu">2. Menú</h2>
+        <div class="screen">
+          <div class="statusbar"><span>9:41</span><span>◆</span></div>
+          <div class="topbar">
+            <button type="button" class="back" data-ir="inicio">&lsaquo; Atrás</button>
+            <button type="button" class="badge" data-ir="pedido" title="Carrito">&#128722;</button>
+          </div>
+          <div class="vista">
+            <h3 class="heading">Menú</h3>
+            <input class="field" id="buscar" type="search" placeholder="Buscar…" autocomplete="off">
+            <div id="lista-productos"></div>
+          </div>
+          <div class="tabbar">
+            <button type="button" class="badge" data-ir="inicio">casa</button>
+            <button type="button" class="badge" data-ir="pedido">bolsa</button>
+          </div>
+        </div>
+        <p class="annotation" style="color:#8f8072;font-size:.76rem">Pantalla de menú.</p>
+      </article>
+
+      <article class="screen-card" data-pantalla="detalle" aria-labelledby="t-detalle">
+        <h2 id="t-detalle">3. Detalle del producto</h2>
+        <div class="screen">
+          <div class="statusbar"><span>9:41</span><span>◆</span></div>
+          <div class="topbar">
+            <span>Producto</span>
+            <button type="button" class="badge" data-ir="pedido" title="Carrito">&#128722;</button>
+          </div>
+          <div class="vista">
+            <div class="placeholder"></div>
+            <h3 class="heading" id="det-nombre">Café americano</h3>
+            <p class="muted" id="det-desc">Café preparado al momento. Tamaño mediano.</p>
+            <p class="total" id="det-precio">$1.50</p>
+            <hr class="divider">
+            <input class="cantidad" id="det-cantidad" type="text" value="1" size="3">
+            <button type="button" class="control" data-accion="agregar">OK</button>
+            <button type="button" class="control" data-ir="menu">Regresar</button>
+          </div>
+          <div class="tabbar">
+            <button type="button" class="badge" data-ir="menu">atrás</button>
+          </div>
+        </div>
+        <p class="annotation" style="color:#8f8072;font-size:.76rem">Pantalla de detalle.</p>
+      </article>
+
+      <article class="screen-card" data-pantalla="pedido" aria-labelledby="t-pedido">
+        <h2 id="t-pedido">4. Mi pedido</h2>
+        <div class="screen">
+          <div class="statusbar"><span>9:41</span><span>◆</span></div>
+          <div class="topbar">
+            <span>CaféU</span>
+            <button type="button" class="badge" data-ir="pedido" title="Carrito">&#128722;</button>
+          </div>
+          <div class="vista">
+            <h3 class="heading">Bolsa</h3>
+            <div id="pedido-lista"></div>
+            <button type="button" class="control" data-accion="confirmar">Procesar orden</button>
+          </div>
+          <div class="tabbar">
+            <button type="button" class="badge" data-ir="inicio">volver</button>
+          </div>
+        </div>
+        <p class="annotation" style="color:#8f8072;font-size:.76rem">Pantalla de resumen.</p>
+      </article>
+
+      <article class="screen-card" data-pantalla="confirmacion" aria-labelledby="t-confirmacion">
+        <h2 id="t-confirmacion">5. Confirmación</h2>
+        <div class="screen">
+          <div class="statusbar"><span>9:41</span><span>◆</span></div>
+          <div class="topbar">
+            <span>CaféU</span>
+            <button type="button" class="badge" data-ir="pedido" title="Carrito">&#128722;</button>
+          </div>
+          <div class="vista">
+            <div id="conf-contenido" hidden>
+              <div class="placeholder avatar"></div>
+              <h3 class="heading center">Listo</h3>
+              <p class="muted center">Tu orden fue enviada.</p>
+            </div>
+          </div>
+          <div class="tabbar">
+            <button type="button" class="badge" data-ir="pedido">pedido</button>
+          </div>
+        </div>
+        <p class="annotation" style="color:#8f8072;font-size:.76rem">Pantalla final.</p>
+      </article>
+    </div>
+
+    <footer class="page-foot">
+      <p>CaféU · versión 1 · prototipo de baja fidelidad para la actividad G3.</p>
+      <p class="foot-app"><a href="?vista=lamina">Ver lámina con las cinco pantallas</a></p>
+      <p class="foot-lamina"><a href="cafeu-v1-defectuoso.html">Volver al prototipo navegable</a></p>
+    </footer>
+  </main>
+
+  <script>
+    (function () {
+      'use strict';
+
+      var CATALOGO = [
+        { id: 'americano', nombre: 'Café americano', cat: 'bebidas', resumen: 'Café recién preparado', detalle: 'Café preparado al momento. Tamaño mediano.', precio: 1.5 },
+        { id: 'sanduche', nombre: 'Sanduche de queso', cat: 'comida', resumen: 'Preparado al momento', detalle: 'Sanduche preparado al momento. Tamaño mediano.', precio: 2.75 }
+      ];
+      var PANTALLAS = ['inicio', 'menu', 'detalle', 'pedido', 'confirmacion'];
+
+      var lamina = new URLSearchParams(window.location.search).get('vista') === 'lamina';
+      var carrito = {};
+      var pedido = null;
+      var productoActual = 'americano';
+      var busqueda = '';
+
+      if (lamina) {
+        carrito = { americano: 1 };
+        pedido = { numero: 'CU-104', lineas: [{ nombre: 'Café americano', cantidad: 1, precio: 1.5 }], total: 1.5 };
+      }
+
+      function $(id) { return document.getElementById(id); }
+      function dinero(v) { return '$' + v.toFixed(2); }
+      function producto(id) {
+        for (var i = 0; i < CATALOGO.length; i++) {
+          if (CATALOGO[i].id === id) return CATALOGO[i];
+        }
+        return CATALOGO[0];
+      }
+      function desdeHash() {
+        var h = (window.location.hash || '').replace(/^#\/?/, '');
+        return PANTALLAS.indexOf(h) >= 0 ? h : 'inicio';
+      }
+      function irA(nombre) {
+        if (PANTALLAS.indexOf(nombre) < 0) nombre = 'inicio';
+        if (window.location.hash === '#/' + nombre) { mostrar(nombre); }
+        else { window.location.hash = '#/' + nombre; }
+      }
+      function mostrar(nombre) {
+        if (PANTALLAS.indexOf(nombre) < 0) nombre = 'inicio';
+        var cards = document.querySelectorAll('.screen-card');
+        for (var i = 0; i < cards.length; i++) {
+          cards[i].classList.toggle('is-active', cards[i].getAttribute('data-pantalla') === nombre);
+        }
+        render();
+        if (!lamina) window.scrollTo(0, 0);
+      }
+
+      function renderMenu() {
+        var q = busqueda.trim().toLowerCase();
+        var visibles = CATALOGO.filter(function (p) {
+          return !q || p.nombre.toLowerCase().indexOf(q) >= 0;
+        });
+        $('lista-productos').innerHTML = visibles.map(function (p) {
+          return '<div class="item">' +
+            '<div class="placeholder small"></div>' +
+            '<h3>' + p.nombre + '</h3>' +
+            '<p>' + p.resumen + ' · ' + dinero(p.precio) + '</p>' +
+            '<button type="button" class="control tiny" data-ver="' + p.id + '">Ver</button>' +
+            '</div>';
+        }).join('');
+      }
+
+      function renderDetalle() {
+        var p = producto(productoActual);
+        $('det-nombre').textContent = p.nombre;
+        $('det-desc').textContent = p.detalle;
+        $('det-precio').textContent = dinero(p.precio);
+      }
+
+      function renderPedido() {
+        var ids = Object.keys(carrito);
+        $('pedido-lista').innerHTML = ids.map(function (id) {
+          var p = producto(id);
+          return '<div class="item">' +
+            '<h3>' + p.nombre + '</h3>' +
+            '<p>' + dinero(p.precio) + ' · ctd ' + carrito[id] + '</p>' +
+            '<button type="button" class="link-btn" data-accion="quitar" data-id="' + id + '">Quitar</button>' +
+            '</div>';
+        }).join('');
+      }
+
+      function renderConfirmacion() {
+        $('conf-contenido').hidden = !pedido;
+      }
+
+      function render() {
+        renderMenu();
+        renderDetalle();
+        renderPedido();
+        renderConfirmacion();
+      }
+
+      document.addEventListener('click', function (e) {
+        var el = e.target && e.target.closest ? e.target.closest('[data-ir],[data-ver],[data-accion]') : null;
+        if (!el) return;
+
+        var ir = el.getAttribute('data-ir');
+        if (ir) { irA(ir); return; }
+
+        var ver = el.getAttribute('data-ver');
+        if (ver) { productoActual = ver; irA('detalle'); return; }
+
+        switch (el.getAttribute('data-accion')) {
+          case 'agregar': {
+            var entrada = $('det-cantidad').value;
+            var n = parseInt(entrada, 10);
+            carrito[productoActual] = (carrito[productoActual] || 0) + (isNaN(n) ? 1 : n);
+            irA('pedido');
+            break;
+          }
+          case 'quitar':
+            delete carrito[el.getAttribute('data-id')];
+            render();
+            break;
+          case 'confirmar': {
+            var ids = Object.keys(carrito);
+            if (ids.length) {
+              var lineas = ids.map(function (id) {
+                return { nombre: producto(id).nombre, cantidad: carrito[id], precio: producto(id).precio };
+              });
+              pedido = { numero: 'CU-104', lineas: lineas };
+              carrito = {};
+            }
+            irA('confirmacion');
+            break;
+          }
+        }
+      });
+
+      $('buscar').addEventListener('input', function () {
+        busqueda = this.value;
+        renderMenu();
+      });
+
+      window.addEventListener('hashchange', function () { mostrar(desdeHash()); });
+
+      mostrar(desdeHash());
+    })();
+  </script>
+</body>
+</html>

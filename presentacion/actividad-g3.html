@@ -1,0 +1,270 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Actividad G3: revisar un prototipo deliberadamente defectuoso de CaféU y explicar qué errores impiden comprenderlo.">
+  <title>Actividad G3 | ¿Qué errores impiden comprender el prototipo?</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+      background: #171923;
+      color: #edf1f7;
+      font-synthesis: none;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; }
+    main { margin: 0 auto; max-width: 1280px; padding: 30px 34px 42px; }
+    .eyebrow { color: #70e1c1; font-size: .8rem; font-weight: 800; letter-spacing: .13em; text-transform: uppercase; }
+    h1 { font-size: clamp(2.1rem, 4.4vw, 3.9rem); letter-spacing: -.045em; line-height: 1.05; margin: .2em 0; }
+    h2 { color: #85b9ff; font-size: clamp(1.25rem, 2.4vw, 1.8rem); margin: 0 0 .65em; }
+    h3 { color: #b4f2df; font-size: clamp(1rem, 1.7vw, 1.2rem); margin: 1em 0 .4em; }
+    p, li { font-size: clamp(1rem, 1.5vw, 1.2rem); line-height: 1.5; }
+    .intro { color: #cbd4e2; font-size: clamp(1.1rem, 2vw, 1.45rem); margin: .35em 0 1.2em; }
+    a { color: #85b9ff; }
+    .scenario { background: #222b30; border: 1px solid #41515a; border-left: 6px solid #70e1c1; border-radius: 12px; margin: 20px 0; padding: 20px 24px; }
+    .scenario p { margin: .4em 0; }
+    .task { background: #252a34; border-radius: 9px; margin: 14px 0; padding: 14px 18px; }
+    .task ol { margin: .4em 0 0; padding-left: 1.4em; }
+    .links { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 14px; }
+    .link-card { background: #20232d; border: 1px solid #515d6b; border-radius: 10px; flex: 1 1 260px; padding: 14px 16px; }
+    .link-card a { font-weight: 750; }
+    .link-card p { color: #b9c3d2; font-size: .95rem; margin: .3em 0 0; }
+    details { background: #20232d; border: 1px solid #515d6b; border-radius: 10px; margin: 12px 0; }
+    summary { color: #b4f2df; cursor: pointer; font-size: 1.1rem; font-weight: 750; padding: 14px 18px; }
+    details[open] summary { border-bottom: 1px solid #414957; }
+    .answer { padding: 8px 20px 18px; }
+    .defect { background: #252a34; border-radius: 8px; margin: .5em 0; padding: 10px 13px; }
+    .defect strong { color: #ffd9a0; }
+    .fix { color: #b4f2df; font-size: .95rem; }
+    table { border-collapse: collapse; font-size: clamp(.9rem, 1.3vw, 1.05rem); margin: .6em 0 1em; width: 100%; }
+    th, td { border: 1px solid #3d4350; padding: 9px 11px; text-align: left; vertical-align: top; }
+    th { background: #272c38; color: #d8e2f1; }
+    .takeaway { background: #203336; border-left: 6px solid #70e1c1; border-radius: 0 10px 10px 0; margin-top: 18px; padding: 14px 18px; }
+    .takeaway p { margin: 0; }
+    .wire-stage { align-items: flex-start; display: flex; flex-wrap: wrap; gap: 26px; margin-top: 14px; }
+    .wire-phone {
+      background: #fff; border: 6px solid #4a4a4a; border-radius: 24px; color: #2c2c2c;
+      flex: 0 0 300px; font-family: "Segoe UI", Roboto, sans-serif; height: 520px; overflow: hidden; position: relative; width: 300px;
+    }
+    .wire-phone .wf-status { color: #cfcfcf; font-size: .5rem; padding: 6px 10px; }
+    .wire-phone .wf-title { font-size: 2.7rem; font-weight: 800; line-height: .85; margin: -6px 0 0 -8px; }
+    .wire-phone .wf-search { background: #f4f4f4; border: 1px solid #ececec; color: #dcdcdc; font-size: .55rem; margin: 26px 0 0 2px; padding: 12px 6px; width: 44%; }
+    .wire-phone .wf-card { background: #f8f8f8; border: 1px solid #ececec; height: 56px; margin: 46px 0 0 44px; position: relative; width: 180px; }
+    .wire-phone .wf-card + .wf-card { margin-left: 6px; margin-top: -30px; }
+    .wire-phone .wf-card span { color: #cfcfcf; font-size: .5rem; left: 6px; position: absolute; top: 6px; }
+    .wire-phone .wf-btn { background: #dedede; border: 1px solid #dedede; color: #dedede; font-size: .42rem; padding: 2px 3px; position: absolute; right: 2px; top: 38px; }
+    .wire-phone .wf-note { color: #dedede; font-size: .5rem; left: 196px; position: absolute; top: 320px; width: 96px; }
+    .wire-phone .wf-cta { background: #3a3a3a; bottom: 8px; color: #f5f5f5; font-size: .5rem; left: 58px; padding: 3px; position: absolute; text-align: center; width: 130px; }
+    .wire-notes { flex: 1 1 300px; }
+    .wire-notes ul, .wire-notes ol { padding-left: 1.3em; }
+    @media (max-width: 760px) {
+      main { padding: 22px 16px 32px; }
+    }
+    @media print {
+      @page { size: landscape; margin: 12mm; }
+      body, :root { background: #171923 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+      main { max-width: none; padding: 0; }
+      h1 { font-size: 28pt; }
+      h2 { font-size: 16pt; }
+      p, li, td, th { font-size: 11pt; }
+      details { break-inside: avoid; }
+      details:not([open]) .answer { display: block; }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <header>
+      <p class="eyebrow">APE · G3 · Técnicas y herramientas de prototipado</p>
+      <h1>¿Qué errores impedirían que este prototipo fuera comprendido por un usuario nuevo?</h1>
+      <p class="intro">CaféU · Abrimos la versión 1, intentamos pedir un café y anotamos todo lo que nos confunda.</p>
+    </header>
+
+    <section class="scenario" aria-labelledby="scenario-title">
+      <h2 id="scenario-title">Situación</h2>
+      <p class="scenario-text">Un estudiante nuevo abre CaféU por primera vez. Necesita <strong>consultar el menú, elegir un producto y confirmar su pedido</strong>.</p>
+      <div class="task">
+        <p><strong>Tarea de la prueba (sin ayuda):</strong> “Pide un café americano y confírmalo.”</p>
+        <ol>
+          <li>Abre la <strong>versión 1</strong> y recórrela intentando cumplir la tarea.</li>
+          <li>Anota cada momento en el que dudes, no entiendas qué hacer o no sepas si algo ocurrió.</li>
+          <li>Responde en grupo la pregunta del título.</li>
+          <li>Recién después, despliega los “errores sembrados” y compáralos con lo que encontró la clase.</li>
+        </ol>
+      </div>
+      <div class="links">
+        <div class="link-card">
+          <a href="../prototipos/cafeu-v1-defectuoso.html">Abrir versión 1 (defectuosa)</a>
+          <p>El prototipo que revisaremos primero.</p>
+        </div>
+        <div class="link-card">
+          <a href="../prototipos/cafeu-v2-corregido.html">Abrir versión 2 (corregida)</a>
+          <p>La propuesta después de aplicar los hallazgos de la prueba rápida.</p>
+        </div>
+      </div>
+    </section>
+
+    <section aria-labelledby="key-title">
+      <h2 id="key-title">Errores sembrados · revelar después de escuchar a la clase</h2>
+
+      <details>
+        <summary>1. No sé qué es esto ni cuál es la tarea (identidad y foco)</summary>
+        <div class="answer">
+          <p class="defect"><strong>Defecto E1.</strong> El título dice “Bienvenido”, no “CaféU”: la persona no sabe en qué aplicación está. El botón principal dice <em>“Continuar”</em>, que no anticipa la acción. El texto “Presiona el botón para ver cosas” no orienta.</p>
+          <p class="fix">v2: nombre de la aplicación visible, tarea explícita (“Pide antes de llegar”) y una única acción principal con nombre claro: <em>“Ver menú”</em>. Cumple la heurística de <em>visibilidad del estado</em> y <em>lenguaje del usuario</em>.</p>
+        </div>
+      </details>
+
+      <details>
+        <summary>2. Nada me confirma que la acción funcionó (retroalimentación)</summary>
+        <div class="answer">
+          <p class="defect"><strong>Defecto E2.</strong> Al pulsar “OK” para agregar, no aparece ningún mensaje y el contador del pedido se queda siempre en 0. La persona no sabe si el producto se agregó.</p>
+          <p class="fix">v2: mensaje de estado (“Café americano agregado al pedido”) en una región <code>aria-live</code> y el contador “Mi pedido · n” se actualiza en todas las pantallas. Heurística de <em>visibilidad del estado del sistema</em>.</p>
+        </div>
+      </details>
+
+      <details>
+        <summary>3. No hay estados vacíos ni mensajes de error</summary>
+        <div class="answer">
+          <p class="defect"><strong>Defecto E3.</strong> Con el pedido vacío, “Bolsa” es una pantalla en blanco. La búsqueda sin resultados tampoco dice nada: parece que la aplicación está rota.</p>
+          <p class="fix">v2: estado vacío con explicación y salida (“Tu pedido está vacío. Vuelve al menú…”) y aviso “No encontramos productos con esa búsqueda”.</p>
+        </div>
+      </details>
+
+      <details>
+        <summary>4. Puedo llegar al final sin pedido (prevención de errores)</summary>
+        <div class="answer">
+          <p class="defect"><strong>Defecto E4.</strong> Con la bolsa vacía se puede pulsar “Procesar orden” y se llega a una confirmación vacía. La interfaz permite un error evitable.</p>
+          <p class="fix">v2: “Confirmar pedido” solo aparece cuando hay productos y la confirmación muestra un estado alterno si nunca se confirmó. Heurística de <em>prevención de errores</em>.</p>
+        </div>
+      </details>
+
+      <details>
+        <summary>5. La navegación cambia en cada pantalla y hay callejones sin salida</summary>
+        <div class="answer">
+          <p class="defect"><strong>Defecto E5.</strong> El volver se llama “‹ Atrás” en el Menú y “Regresar” al final del Detalle, en posiciones distintas. “Mi pedido” no ofrece ninguna forma de volver al menú.</p>
+          <p class="fix">v2: el control de regreso aparece siempre arriba a la izquierda con la misma forma (“‹ Inicio”, “‹ Menú”, “‹ Seguir comprando”) y toda pantalla tiene salida. Heurística de <em>control y libertad del usuario</em> y <em>consistencia</em>.</p>
+        </div>
+      </details>
+
+      <details>
+        <summary>6. Cada pantalla llama distinto a lo mismo (consistencia y lenguaje)</summary>
+        <div class="answer">
+          <p class="defect"><strong>Defecto E6.</strong> El mismo objeto se llama “Mi pedido”, “Bolsa”, “orden” y “carrito”. El botón “OK” y “Procesar orden” usan lenguaje del sistema, no de la persona.</p>
+          <p class="fix">v2: una sola denominación (“Mi pedido”) y acciones con verbos claros (“Agregar al pedido”, “Confirmar pedido”). Heurística de <em>consistencia y estándares</em> y <em>lenguaje de la persona usuaria</em>.</p>
+        </div>
+      </details>
+
+      <details>
+        <summary>7. íconos sin texto y controles diminutos (reconocer sobre recordar)</summary>
+        <div class="answer">
+          <p class="defect"><strong>Defecto E7.</strong> El acceso al pedido es solo un ícono de carrito, sin texto ni nombre accesible. Los botones y enlaces son muy pequeños (“Ver”, “Quitar”).</p>
+          <p class="fix">v2: los accesos llevan texto (“Mi pedido · 1”, “Ver detalle”) y los controles tienen tamaño y área de clic adecuados. Heurística de <em>reconocimiento antes que recuerdo</em> y accesibilidad.</p>
+        </div>
+      </details>
+
+      <details>
+        <summary>8. La cantidad se escribe a mano, sin etiqueta ni límites</summary>
+        <div class="answer">
+          <p class="defect"><strong>Defecto E8.</strong> La cantidad es un campo de texto libre sin etiqueta: acepta letras y valores sin sentido, y no se sabe el mínimo ni el máximo.</p>
+          <p class="fix">v2: control por pasos (− / +) con etiqueta “Cantidad”, límites (1–9) y botones deshabilitados en los extremos.</p>
+        </div>
+      </details>
+
+      <details>
+        <summary>9. Quitar un producto no se puede deshacer</summary>
+        <div class="answer">
+          <p class="defect"><strong>Defecto E9.</strong> “Quitar” elimina el producto de inmediato, sin confirmación ni forma de recuperarlo.</p>
+          <p class="fix">v2: tras quitar aparece un mensaje con la opción <em>“Deshacer”</em>. Heurística de <em>control y libertad del usuario</em>.</p>
+        </div>
+      </details>
+
+      <details>
+        <summary>10. Texto con bajo contraste y controles muy pequeños</summary>
+        <div class="answer">
+          <p class="defect"><strong>Defecto E10.</strong> Los textos de apoyo son gris muy claro sobre blanco y hay botones diminutos: cuesta leerlos y pulsarlos.</p>
+          <p class="fix">v2: contraste de texto suficiente, tamaños legibles y separación entre controles.</p>
+        </div>
+      </details>
+
+      <details>
+        <summary>11. Accesibilidad: sin foco visible ni anuncios de estado</summary>
+        <div class="answer">
+          <p class="defect"><strong>Defecto E11.</strong> No hay indicador de foco al navegar con teclado y los cambios de estado no se anuncian, por lo que no se perciben sin ver la pantalla.</p>
+          <p class="fix">v2: estilo de foco visible, etiquetas asociadas (<code>label</code>), nombres accesibles en íconos y regiones <code>aria-live</code>.</p>
+        </div>
+      </details>
+    </section>
+
+    <section aria-labelledby="test-title">
+      <h2 id="test-title">Prueba rápida: cómo se evaluó la versión 1</h2>
+      <p>Con 5 compañeros que no habían visto el caso, aplicando el método de “pensar en voz alta”:</p>
+      <table>
+        <thead>
+          <tr><th>Qué se pidió</th><th>Qué se observó</th><th>Resultado</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Test de 5 segundos: “¿Qué es esta pantalla y qué puedes hacer?”</td><td>Nadie identificó la aplicación; algunos creyeron que “Continuar” era el menú.</td><td>4/5 no supo qué era (→ E1)</td></tr>
+          <tr><td>Tarea: “Pide un café americano y confírmalo.”</td><td>3/5 dudaron si el producto se había agregado; 2/5 pulsaron “Procesar orden” sin productos.</td><td>3/5 completaron con ayuda (→ E2, E4)</td></tr>
+          <tr><td>Observar reacción al quitar un producto</td><td>Nadie encontró cómo recuperarlo.</td><td>5/5 buscaron “deshacer” (→ E9)</td></tr>
+          <tr><td>Preguntar por el camino de regreso</td><td>2/5 quedaron sin salida en “Bolsa”; todos notaron nombres distintos.</td><td>5/5 lo señalaron (→ E5, E6)</td></tr>
+        </tbody>
+      </table>
+      <p>Los detalles de método, hallazgos priorizados y los cambios aplicados están en <strong>docs/prueba-cafeu-v1-v2.md</strong>. El resumen: <strong>v1</strong> (defectuosa) → <strong>prueba rápida</strong> → <strong>hallazgos</strong> → <strong>v2</strong> (corregida).</p>
+    </section>
+
+    <section aria-labelledby="bad-wire-title">
+      <h2 id="bad-wire-title">Actividad: arreglar un wireframe mal hecho</h2>
+      <p>Este wireframe está hecho a propósito <strong>mal</strong>. Tiene errores de estructura, jerarquía y controles. Mírenlo, detecten lo que está mal y <strong>generen ustedes el prototipo</strong>.</p>
+
+      <div class="wire-stage">
+        <div class="wire-phone" role="img" aria-label="Wireframe mal hecho de una pantalla de menú: título gigante y recortado, buscador desalineado, tarjetas superpuestas, botones diminutos y de bajo contraste, texto gris sobre gris y sin etiquetas ni navegación clara.">
+          <div class="wf-status">9:41</div>
+          <div class="wf-title">MENU</div>
+          <div class="wf-search">buscar…</div>
+          <div class="wf-card"><span>café</span><div class="wf-btn">ver</div></div>
+          <div class="wf-card"><span>sanduche</span><div class="wf-btn">ver</div></div>
+          <div class="wf-card"><span>producto 3</span><div class="wf-btn">ver</div></div>
+          <div class="wf-note">texto de apoyo gris muy claro, casi invisible</div>
+          <div class="wf-cta">Comprar</div>
+        </div>
+
+        <div class="wire-notes">
+          <h3>Qué observar</h3>
+          <ul>
+            <li>Jerarquía: ¿qué se lee primero?</li>
+            <li>Alineación y espaciado entre bloques.</li>
+            <li>Contraste del texto y de los controles.</li>
+            <li>Tamaño y área de los botones.</li>
+            <li>Etiquetas, nombres y estados.</li>
+            <li>Navegación y acción principal.</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="task">
+        <p><strong>Consigna:</strong> “Toma este wireframe mal hecho y genera el prototipo.”</p>
+        <ol>
+          <li>Detecten al menos <strong>6 errores</strong> (jerarquía, alineación, contraste, controles, etiquetas, estados).</li>
+          <li>Dibujen el <strong>wireframe corregido</strong> o móntenlo en Figma (Auto Layout, estilos, componentes).</li>
+          <li>Conviértanlo en un <strong>prototipo navegable</strong> y pruébenlo con una persona que no conozca el caso.</li>
+        </ol>
+      </div>
+
+      <details>
+        <summary>Ver errores esperados y qué se busca (revelar después)</summary>
+        <div class="answer">
+          <p class="defect"><strong>Errores del ejemplo.</strong> Título recortado y desproporcionado; buscador fuera de la grilla; tarjetas superpuestas; botones “ver” diminutos y sin contraste; texto de apoyo gris sobre gris; sin encabezado de aplicación; sin navegación de regreso; acción principal con verbo ambiguo (“Comprar”); sin estados (vacío, sin resultados) ni etiquetas.</p>
+          <p class="fix">Lo que se espera del prototipo corregido: jerarquía clara (un foco por pantalla), alineación a una grilla, contraste suficiente, controles con tamaño táctil, etiquetas explícitas, navegación consistente con salida en cada pantalla y una única acción principal nombrada con un verbo claro.</p>
+        </div>
+      </details>
+    </section>
+
+    <aside class="takeaway">
+      <p><strong>Para cerrar:</strong> “Un prototipo puede verse ordenado y aun así no ser comprensible. La prueba rápida convierte las dudas de las personas en una lista de cambios concretos: eso es iterar sobre evidencia, no sobre gustos.”</p>
+    </aside>
+  </main>
+</body>
+</html>

@@ -1,0 +1,628 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="CaféU versión 2 corregida: prototipo navegable de baja fidelidad con navegación, estados, feedback y microinteracciones, resultado de la prueba rápida de la actividad G3.">
+  <title>CaféU | Versión 2 corregida (prototipo navegable)</title>
+  <script>
+    if (new URLSearchParams(window.location.search).get('vista') === 'lamina') {
+      document.documentElement.classList.add('lamina');
+    }
+  </script>
+  <style>
+    :root {
+      color-scheme: light;
+      --crema: #faf6f0;
+      --crema-2: #f4ebe0;
+      --sup: #ffffff;
+      --cafe: #3e2723;
+      --cafe-2: #5d4037;
+      --caramelo: #d84315;
+      --caramelo-2: #bf360c;
+      --texto: #33241a;
+      --suave: #8d6e63;
+      --borde: #ece0d3;
+      --ok: #2e7d32;
+      font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, system-ui, sans-serif;
+      color: var(--texto);
+      background: var(--crema);
+      font-synthesis: none;
+    }
+    * { box-sizing: border-box; }
+    [hidden] { display: none !important; }
+    body {
+      margin: 0;
+      background:
+        radial-gradient(900px 480px at 15% -10%, #fbf3ea 0%, rgba(251,243,234,0) 60%),
+        radial-gradient(760px 420px at 90% 0%, #f4e3d3 0%, rgba(244,227,211,0) 55%),
+        var(--crema);
+      min-height: 100vh;
+    }
+    .serif { font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, system-ui, sans-serif; font-weight: 800; }
+    main { margin: 0 auto; max-width: 1360px; padding: 34px 26px 52px; }
+
+    .page-head { margin: 0 auto 28px; max-width: 820px; text-align: center; }
+    .escudo { align-items: center; background: var(--sup); border: 1px solid var(--borde); border-radius: 999px; color: var(--cafe-2); display: inline-flex; font-size: .74rem; font-weight: 700; gap: 7px; letter-spacing: .1em; padding: 6px 14px; text-transform: uppercase; }
+    .escudo svg { color: var(--caramelo); }
+    h1 { font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, system-ui, sans-serif; font-weight: 800; font-size: clamp(2.1rem, 4.4vw, 3.2rem); letter-spacing: -.02em; margin: .3em 0 .15em; color: var(--cafe); }
+    .page-head p { color: #6f5c4b; line-height: 1.6; margin: .5em 0; }
+    .notice { background: var(--sup); border: 1px solid var(--borde); border-left: 4px solid var(--caramelo); border-radius: 12px; margin: 20px auto 0; max-width: 720px; padding: 12px 16px; text-align: left; font-size: .9rem; line-height: 1.55; }
+    .notice strong { color: var(--cafe); }
+    .notice-lamina { display: none; }
+    html.lamina .notice-app { display: none; }
+    html.lamina .notice-lamina { display: block; }
+
+    .stage { align-items: start; display: grid; gap: 22px; justify-items: center; grid-template-columns: 1fr; }
+    .screen-card { display: none; max-width: 420px; width: 100%; }
+    .screen-card.is-active { display: block; }
+    .screen-card h2 { color: var(--cafe-2); font-size: .82rem; letter-spacing: .06em; margin: 0 0 10px; text-align: center; text-transform: uppercase; }
+
+    .screen { background: var(--sup); border: 9px solid var(--cafe); border-radius: 34px; box-shadow: 0 18px 40px rgba(62,39,35,.16); display: flex; flex-direction: column; height: 660px; overflow: hidden; position: relative; }
+    .statusbar { align-items: center; color: var(--cafe); display: flex; font-size: .66rem; font-weight: 700; justify-content: space-between; padding: 8px 20px 2px; }
+    .statusbar .dot { background: var(--cafe); border-radius: 50%; height: 5px; width: 5px; }
+    .appbar { align-items: center; border-bottom: 1px solid var(--borde); display: flex; justify-content: space-between; padding: 10px 16px 12px; }
+    .marca { align-items: center; color: var(--cafe); display: inline-flex; font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, system-ui, sans-serif; font-weight: 700; font-size: 1.08rem; font-weight: 700; gap: 7px; }
+    .marca svg { color: var(--caramelo); }
+    .pill { align-items: center; background: var(--crema-2); border: 1px solid var(--caramelo); border-radius: 999px; color: var(--caramelo-2); cursor: pointer; display: inline-flex; font: inherit; font-size: .72rem; font-weight: 700; gap: 6px; padding: 6px 11px; }
+    .pill:hover { background: #fbeed8; }
+    .pill .num { background: var(--caramelo); border-radius: 999px; color: #fff; display: inline-block; min-width: 17px; padding: 0 4px; text-align: center; }
+    .pill.estatico { border-color: var(--borde); color: var(--suave); cursor: default; }
+
+    .vista { flex: 1; overflow: auto; padding: 16px; }
+    .vista::-webkit-scrollbar { width: 0; }
+
+    .progreso { display: flex; gap: 6px; margin: 0 0 12px; }
+    .progreso span { border-top: 3px solid var(--borde); color: var(--suave); flex: 1; font-size: .62rem; font-weight: 700; padding-top: 5px; text-align: center; }
+    .progreso span.on { border-top-color: var(--caramelo); color: var(--caramelo-2); }
+
+    .tabbar { background: var(--sup); border-top: 1px solid var(--borde); display: flex; }
+    button.tab { align-items: center; background: none; border: 0; color: var(--suave); cursor: pointer; display: flex; flex: 1; flex-direction: column; font: inherit; font-size: .66rem; font-weight: 700; gap: 3px; padding: 9px 4px 11px; position: relative; }
+    button.tab svg { height: 19px; width: 19px; }
+    button.tab:hover { color: var(--cafe-2); }
+    button.tab.is-active { color: var(--caramelo-2); }
+    button.tab .num { background: var(--caramelo); border-radius: 999px; color: #fff; font-size: .58rem; min-width: 15px; padding: 1px 4px; position: absolute; right: 26%; top: 4px; }
+
+    .heading { color: var(--cafe); font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, system-ui, sans-serif; font-weight: 700; font-size: 1.12rem; margin: 4px 0 10px; }
+    .muted { color: var(--suave); font-size: .8rem; line-height: 1.45; }
+    .center { text-align: center; }
+    .divider { border: 0; border-top: 1px dashed var(--borde); margin: 15px 0; }
+
+    input.field { background: var(--crema-2); border: 1px solid var(--borde); border-radius: 999px; color: var(--texto); font-family: inherit; font-size: .82rem; padding: 10px 14px; width: 100%; }
+    input.field::placeholder { color: var(--suave); }
+    .field { margin: 12px 0; }
+    .filter-row { display: flex; flex-wrap: wrap; gap: 6px; margin: 11px 0; }
+    button.chip { cursor: pointer; font-family: inherit; }
+    .chip { background: var(--sup); border: 1px solid var(--borde); border-radius: 999px; color: var(--cafe-2); font-size: .72rem; font-weight: 600; padding: 6px 12px; }
+    .chip:hover { border-color: var(--caramelo); }
+    .chip.is-active { background: var(--cafe); border-color: var(--cafe); color: #fff; }
+
+    .item { background: var(--sup); border: 1px solid var(--borde); border-radius: 16px; box-shadow: 0 4px 8px rgba(62,39,35,.08); margin: 10px 0; padding: 11px; }
+    .ficha { display: flex; gap: 11px; }
+    .thumb { align-items: center; background: linear-gradient(150deg, #f2e3d3, #e3cbb2); border-radius: 12px; color: var(--cafe-2); display: flex; flex: 0 0 52px; height: 52px; justify-content: center; }
+    .thumb svg { height: 26px; width: 26px; }
+    .thumb.big { flex-basis: auto; height: 120px; margin-bottom: 14px; }
+    .thumb.big svg { height: 52px; width: 52px; }
+    .ficha .info { flex: 1; min-width: 0; }
+    .ficha h3 { color: var(--cafe); font-size: .86rem; margin: 0 0 3px; }
+    .ficha p { color: var(--suave); font-size: .73rem; line-height: 1.35; margin: 0; }
+    .precio { color: var(--caramelo-2); font-weight: 800; }
+
+    .row { align-items: center; display: flex; gap: 8px; justify-content: space-between; }
+    button.control { cursor: pointer; font-family: inherit; }
+    .control { background: var(--caramelo); border: 1px solid var(--caramelo); border-radius: 12px; color: #fff; display: block; font-size: .78rem; font-weight: 700; margin-top: 11px; padding: 10px; text-align: center; width: 100%; }
+    .control:hover { background: var(--caramelo-2); }
+    .control.secondary { background: var(--sup); border-color: var(--caramelo); color: var(--caramelo-2); }
+    .control.secondary:hover { background: #fbeed8; }
+    .control.inline { border-radius: 9px; display: inline-block; margin: 0; min-width: 34px; padding: 7px 10px; width: auto; }
+    .control:disabled { cursor: not-allowed; opacity: .45; }
+    button.link-btn { background: none; border: 0; color: var(--caramelo-2); cursor: pointer; font: inherit; font-size: .78rem; font-weight: 600; padding: 0; text-decoration: underline; }
+    button.link-btn:hover { color: var(--cafe); }
+    .total { color: var(--cafe); font-size: .92rem; font-weight: 800; }
+    .status { background: var(--crema-2); border: 1px dashed var(--borde); border-radius: 12px; color: var(--suave); font-size: .78rem; margin: 12px 0; padding: 14px; text-align: center; }
+    .status.ok { background: #e8f5e9; border: 1px solid #c8e6c9; color: var(--ok); font-weight: 600; text-align: left; }
+    .status .link-btn { font-size: .78rem; margin-left: 4px; }
+    .check { align-items: center; background: #e8f5e9; border: 2px solid var(--ok); border-radius: 50%; color: var(--ok); display: flex; height: 58px; justify-content: center; margin: 8px auto 12px; width: 58px; }
+    .check svg { height: 30px; width: 30px; }
+    .nota { color: #7a6656; font-size: .78rem; line-height: 1.5; margin: 10px 2px 0; }
+    .page-foot { color: #7a6656; font-size: .82rem; margin: 30px auto 0; max-width: 820px; text-align: center; }
+    .page-foot p { margin: .4em 0; }
+    .page-foot a { color: var(--caramelo-2); }
+    .foot-lamina { display: none; }
+    html.lamina .foot-app { display: none; }
+    html.lamina .foot-lamina { display: block; }
+    .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
+    :focus-visible { outline: 3px solid var(--caramelo); outline-offset: 2px; border-radius: 6px; }
+
+    html.lamina main { max-width: none; }
+    html.lamina .stage { gap: 14px; grid-template-columns: repeat(5, minmax(0, 1fr)); }
+    html.lamina .screen-card { display: block; max-width: none; width: auto; }
+    html.lamina .screen { border-width: 5px; border-radius: 20px; box-shadow: none; height: auto; }
+    html.lamina .vista { overflow: visible; }
+
+    @media screen and (max-width: 1080px) { html.lamina .stage { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+    @media screen and (max-width: 700px) {
+      main { padding: 26px 14px 40px; }
+      html.lamina .stage { gap: 14px 12px; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .screen { height: 600px; }
+    }
+    @media screen and (max-width: 430px) { html.lamina .stage { grid-template-columns: 1fr; } }
+
+    @media print {
+      @page { size: landscape; margin: 9mm; }
+      body, :root { background: #fff; }
+      main { max-width: none; padding: 0; }
+      .page-head { margin: 0 auto 8px; }
+      .page-head h1 { font-size: 1.5rem; margin: .1em 0; }
+      .page-head p { font-size: 8px; line-height: 1.25; margin: 3px 0; }
+      .escudo { font-size: 7px; padding: 3px 8px; }
+      .notice { font-size: 8px; margin-top: 5px; padding: 5px 8px; }
+      .stage { align-items: start; display: grid; gap: 7px; grid-template-columns: repeat(5, minmax(0, 1fr)); }
+      .stage .screen-card { display: block; max-width: none; width: auto; }
+      .screen-card h2 { font-size: 8px; margin: 0 0 3px; }
+      .screen { border-width: 4px; border-radius: 16px; box-shadow: none; height: auto; }
+      .statusbar { display: none; }
+      .appbar { padding: 4px 7px 6px; }
+      .marca { font-size: 8px; }
+      .pill { font-size: 6px; padding: 2px 5px; }
+      .vista { overflow: visible; padding: 7px; }
+      .progreso span { font-size: 5.5px; }
+      .muted, .ficha p, .nota, button.link-btn, .status .link-btn { font-size: 6.5px; line-height: 1.25; }
+      .heading { font-size: 10px; margin: 3px 0 5px; }
+      .field { margin: 5px 0; font-size: 7px; padding: 4px 8px; }
+      .filter-row { gap: 3px; margin: 5px 0; }
+      .chip { font-size: 6px; padding: 3px 6px; }
+      .item { border-radius: 8px; margin: 5px 0; padding: 5px; }
+      .thumb { flex-basis: 30px; height: 30px; }
+      .thumb.big { height: 54px; }
+      .ficha h3 { font-size: 7px; }
+      .control { border-radius: 7px; font-size: 7px; margin-top: 5px; padding: 5px; }
+      .control.inline { min-width: 0; padding: 3px 5px; }
+      .tabbar { display: none; }
+      .divider { margin: 6px 0; }
+      .total { font-size: 8px; }
+      .check { height: 30px; width: 30px; }
+      .check svg { height: 16px; width: 16px; }
+      .nota { margin-top: 5px; }
+      .page-foot { font-size: 7px; margin-top: 6px; }
+      .foot-app, .foot-lamina { display: none !important; }
+      * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+    }
+  </style>
+</head>
+<body>
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+    <symbol id="i-cup" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h11v6a5 5 0 0 1-5 5H9a5 5 0 0 1-5-5z"/><path d="M15 9h2.4a2.3 2.3 0 0 1 0 4.6H15"/><path d="M8 3.5v2M11 3v2"/></symbol>
+    <symbol id="i-home" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 11 12 4l8.5 7"/><path d="M5.5 10v9h13v-9"/></symbol>
+    <symbol id="i-menu" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M4 12h16M4 17h11"/></symbol>
+    <symbol id="i-bag" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8h12l-1.1 11H7.1z"/><path d="M9 8a3 3 0 0 1 6 0"/></symbol>
+    <symbol id="i-food" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 14a8 8 0 0 1 16 0z"/><path d="M3 18h18"/></symbol>
+    <symbol id="i-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5 10 17 19 7"/></symbol>
+  </svg>
+
+  <main>
+    <header class="page-head">
+      <p class="escudo"><svg width="14" height="14" aria-hidden="true"><use href="#i-cup"/></svg> APE · G3 · Técnicas y herramientas de prototipado</p>
+      <h1>CaféU: versión 2 corregida</h1>
+      <p>La misma tarea de la versión 1, ahora con navegación consistente, estados vacíos, retroalimentación y microinteracciones. Todos los cambios provienen de la prueba rápida.</p>
+      <div class="notice notice-app"><strong>Prototipo navegable de baja fidelidad (v2).</strong> Usa los botones, la búsqueda y los filtros para seguir el flujo completo. Cada acción responde con un mensaje, el contador del pedido se actualiza y el pedido vive en la sesión del navegador.</div>
+      <div class="notice notice-lamina"><strong>Lámina de la versión 2.</strong> Las cinco pantallas del recorrido, en orden, con sus anotaciones. Las mismas pantallas están disponibles en el prototipo navegable.</div>
+    </header>
+
+    <div class="stage" id="stage">
+      <article class="screen-card" data-pantalla="inicio" aria-labelledby="t-inicio">
+        <h2 id="t-inicio">1. Inicio</h2>
+        <div class="screen">
+          <div class="statusbar"><span>9:41</span><span class="dot"></span></div>
+          <div class="appbar">
+            <span class="marca"><svg width="18" height="18" aria-hidden="true"><use href="#i-cup"/></svg> CaféU</span>
+            <button type="button" class="pill" data-ir="pedido"><svg width="15" height="15" aria-hidden="true"><use href="#i-bag"/></svg> Mi pedido <span class="num js-contador">0</span></button>
+          </div>
+          <div class="vista">
+            <div class="progreso" aria-hidden="true"><span class="on">Carta</span><span>Pedido</span><span>Listo</span></div>
+            <div class="hero" style="background:linear-gradient(150deg,#4e342e 0%,var(--cafe) 100%);border-radius:18px;padding:20px;color:#fff">
+              <h3 class="serif" style="font-size:1.35rem;margin:0 0 6px">Pide antes de llegar</h3>
+              <p style="color:#ffe9cf;font-size:.8rem;line-height:1.45;margin:0 0 14px">Consulta la carta de hoy y prepara tu pedido para el descanso.</p>
+              <button type="button" class="control" style="background:var(--caramelo);border-color:var(--caramelo);color:#fff;margin-top:0" data-ir="menu">Ver menú</button>
+            </div>
+            <hr class="divider">
+            <p class="muted">Horario de atención</p>
+            <div class="item">
+              <div class="row"><span>Lunes a viernes</span><span class="precio">7:00 – 19:00</span></div>
+              <div class="row"><span>Sábado</span><span class="precio">8:00 – 13:00</span></div>
+            </div>
+          </div>
+          <nav class="tabbar" aria-label="Navegación principal">
+            <button type="button" class="tab is-active" data-ir="inicio"><svg aria-hidden="true"><use href="#i-home"/></svg>Inicio</button>
+            <button type="button" class="tab" data-ir="menu"><svg aria-hidden="true"><use href="#i-menu"/></svg>Menú</button>
+            <button type="button" class="tab" data-ir="pedido"><svg aria-hidden="true"><use href="#i-bag"/></svg>Mi pedido<span class="num js-contador">0</span></button>
+          </nav>
+        </div>
+        <p class="nota">Nombre visible, tarea explícita y una sola acción principal.</p>
+      </article>
+
+      <article class="screen-card" data-pantalla="menu" aria-labelledby="t-menu">
+        <h2 id="t-menu">2. Menú</h2>
+        <div class="screen">
+          <div class="statusbar"><span>9:41</span><span class="dot"></span></div>
+          <div class="appbar">
+            <span class="marca"><svg width="18" height="18" aria-hidden="true"><use href="#i-cup"/></svg> CaféU</span>
+            <button type="button" class="pill" data-ir="pedido"><svg width="15" height="15" aria-hidden="true"><use href="#i-bag"/></svg> Mi pedido <span class="num js-contador">0</span></button>
+          </div>
+          <div class="vista">
+            <div class="progreso" aria-hidden="true"><span class="on">Carta</span><span>Pedido</span><span>Listo</span></div>
+            <h3 class="heading">Menú de hoy</h3>
+            <label class="sr-only" for="buscar">Buscar productos</label>
+            <input class="field" id="buscar" type="search" placeholder="Buscar productos…" autocomplete="off">
+            <div class="filter-row" role="group" aria-label="Filtrar por categoría">
+              <button type="button" class="chip is-active" data-filtro="todo">Todo</button>
+              <button type="button" class="chip" data-filtro="bebidas">Bebidas</button>
+              <button type="button" class="chip" data-filtro="comida">Comida</button>
+            </div>
+            <div id="lista-productos"></div>
+            <p class="status" id="menu-vacio" hidden>No encontramos productos con esa búsqueda.</p>
+          </div>
+          <nav class="tabbar" aria-label="Navegación principal">
+            <button type="button" class="tab" data-ir="inicio"><svg aria-hidden="true"><use href="#i-home"/></svg>Inicio</button>
+            <button type="button" class="tab is-active" data-ir="menu"><svg aria-hidden="true"><use href="#i-menu"/></svg>Menú</button>
+            <button type="button" class="tab" data-ir="pedido"><svg aria-hidden="true"><use href="#i-bag"/></svg>Mi pedido<span class="num js-contador">0</span></button>
+          </nav>
+        </div>
+        <p class="nota">Búsqueda, filtros y tarjetas permiten comparar productos antes de elegir.</p>
+      </article>
+
+      <article class="screen-card" data-pantalla="detalle" aria-labelledby="t-detalle">
+        <h2 id="t-detalle">3. Detalle del producto</h2>
+        <div class="screen">
+          <div class="statusbar"><span>9:41</span><span class="dot"></span></div>
+          <div class="appbar">
+            <button type="button" class="pill" data-ir="menu">‹ Menú</button>
+            <button type="button" class="pill" data-ir="pedido"><svg width="15" height="15" aria-hidden="true"><use href="#i-bag"/></svg> Mi pedido <span class="num js-contador">0</span></button>
+          </div>
+          <div class="vista">
+            <div class="progreso" aria-hidden="true"><span class="on">Carta</span><span>Pedido</span><span>Listo</span></div>
+            <div class="thumb big" id="det-thumb"><svg aria-hidden="true"><use href="#i-cup"/></svg></div>
+            <h3 class="heading" id="det-nombre">Café americano</h3>
+            <p class="muted" id="det-desc">Café preparado al momento. Tamaño mediano.</p>
+            <p class="total" id="det-precio">$1.50</p>
+            <hr class="divider">
+            <p class="muted">Cantidad</p>
+            <div class="row">
+              <button type="button" class="control inline" data-accion="detalle-menos" aria-label="Disminuir cantidad">−</button>
+              <strong id="det-cantidad">1</strong>
+              <button type="button" class="control inline" data-accion="detalle-mas" aria-label="Aumentar cantidad">+</button>
+            </div>
+            <button type="button" class="control" data-accion="agregar">Agregar al pedido</button>
+          </div>
+          <nav class="tabbar" aria-label="Navegación principal">
+            <button type="button" class="tab" data-ir="inicio"><svg aria-hidden="true"><use href="#i-home"/></svg>Inicio</button>
+            <button type="button" class="tab is-active" data-ir="menu"><svg aria-hidden="true"><use href="#i-menu"/></svg>Menú</button>
+            <button type="button" class="tab" data-ir="pedido"><svg aria-hidden="true"><use href="#i-bag"/></svg>Mi pedido<span class="num js-contador">0</span></button>
+          </nav>
+        </div>
+        <p class="nota">Cantidad con etiqueta y límites; la acción principal nombra lo que hace.</p>
+      </article>
+
+      <article class="screen-card" data-pantalla="pedido" aria-labelledby="t-pedido">
+        <h2 id="t-pedido">4. Mi pedido</h2>
+        <div class="screen">
+          <div class="statusbar"><span>9:41</span><span class="dot"></span></div>
+          <div class="appbar">
+            <button type="button" class="pill" data-ir="menu">‹ Seguir comprando</button>
+            <span class="marca serif" style="font-size:.95rem">Mi pedido</span>
+          </div>
+          <div class="vista">
+            <div class="progreso" aria-hidden="true"><span>Carta</span><span class="on">Pedido</span><span>Listo</span></div>
+            <h3 class="heading">Revisa tu pedido</h3>
+            <p class="status ok" id="pedido-aviso" role="status" aria-live="polite" hidden></p>
+            <div id="pedido-lista"></div>
+            <div class="item" id="pedido-totales" hidden>
+              <div class="row"><span class="muted">Subtotal</span><span class="total" id="pedido-subtotal">$1.50</span></div>
+              <p class="muted" style="margin:6px 0 0">Total a pagar en cafetería</p>
+            </div>
+            <button type="button" class="control secondary" data-ir="menu">Volver al menú</button>
+            <button type="button" class="control" data-accion="confirmar" id="btn-confirmar">Confirmar pedido</button>
+          </div>
+          <nav class="tabbar" aria-label="Navegación principal">
+            <button type="button" class="tab" data-ir="inicio"><svg aria-hidden="true"><use href="#i-home"/></svg>Inicio</button>
+            <button type="button" class="tab" data-ir="menu"><svg aria-hidden="true"><use href="#i-menu"/></svg>Menú</button>
+            <button type="button" class="tab is-active" data-ir="pedido"><svg aria-hidden="true"><use href="#i-bag"/></svg>Mi pedido<span class="num js-contador">0</span></button>
+          </nav>
+        </div>
+        <p class="nota">Estado vacío con salida, retroalimentación y opción de deshacer al quitar.</p>
+      </article>
+
+      <article class="screen-card" data-pantalla="confirmacion" aria-labelledby="t-confirmacion">
+        <h2 id="t-confirmacion">5. Confirmación</h2>
+        <div class="screen">
+          <div class="statusbar"><span>9:41</span><span class="dot"></span></div>
+          <div class="appbar">
+            <span class="marca"><svg width="18" height="18" aria-hidden="true"><use href="#i-cup"/></svg> CaféU</span>
+            <span class="pill estatico">Pedido recibido</span>
+          </div>
+          <div class="vista">
+            <div class="progreso" aria-hidden="true"><span>Carta</span><span>Pedido</span><span class="on">Listo</span></div>
+            <div id="conf-contenido">
+              <div class="check"><svg aria-hidden="true"><use href="#i-check"/></svg></div>
+              <h3 class="heading center">¡Pedido confirmado!</h3>
+              <p class="muted center">La cafetería recibió tu pedido.</p>
+              <div class="status ok" style="text-align:center">Número de pedido<br><strong id="conf-numero">#CU-104</strong></div>
+              <div class="item">
+                <h3 class="heading" style="font-size:.92rem;margin-top:0">Resumen</h3>
+                <div id="conf-lineas"><p>1 × Café americano</p></div>
+                <hr class="divider">
+                <div class="row"><span class="muted">Total</span><span class="total" id="conf-total">$1.50</span></div>
+              </div>
+              <p class="muted">Puedes mostrar el número al retirar tu pedido.</p>
+              <button type="button" class="control secondary" data-ir="menu">Volver al menú</button>
+            </div>
+            <div id="conf-vacio" hidden>
+              <div class="status">Todavía no hay un pedido confirmado.</div>
+              <button type="button" class="control" data-ir="menu">Ir al menú</button>
+            </div>
+          </div>
+          <nav class="tabbar" aria-label="Navegación principal">
+            <button type="button" class="tab" data-ir="inicio"><svg aria-hidden="true"><use href="#i-home"/></svg>Inicio</button>
+            <button type="button" class="tab" data-ir="menu"><svg aria-hidden="true"><use href="#i-menu"/></svg>Menú</button>
+            <button type="button" class="tab" data-ir="pedido"><svg aria-hidden="true"><use href="#i-bag"/></svg>Mi pedido<span class="num js-contador">0</span></button>
+          </nav>
+        </div>
+        <p class="nota">Estado final que confirma el resultado y evita llegar aquí sin pedido.</p>
+      </article>
+    </div>
+
+    <footer class="page-foot">
+      <p>CaféU · versión 2 corregida · resultado de la prueba rápida de la actividad G3.</p>
+      <p class="foot-app"><a href="?vista=lamina">Ver lámina con las cinco pantallas</a></p>
+      <p class="foot-lamina"><a href="cafeu-v2-corregido.html">Volver al prototipo navegable</a></p>
+    </footer>
+  </main>
+
+  <script>
+    (function () {
+      'use strict';
+
+      var CATALOGO = [
+        { id: 'americano', nombre: 'Café americano', cat: 'bebidas', resumen: 'Café recién preparado', detalle: 'Café preparado al momento. Tamaño mediano.', precio: 1.5 },
+        { id: 'sanduche', nombre: 'Sanduche de queso', cat: 'comida', resumen: 'Preparado al momento', detalle: 'Sanduche preparado al momento. Tamaño mediano.', precio: 2.75 }
+      ];
+      var PANTALLAS = ['inicio', 'menu', 'detalle', 'pedido', 'confirmacion'];
+
+      var lamina = new URLSearchParams(window.location.search).get('vista') === 'lamina';
+      var carrito = {};
+      var pedido = null;
+      var productoActual = 'americano';
+      var cantidadDetalle = 1;
+      var filtro = 'todo';
+      var busqueda = '';
+      var aviso = '';
+      var permiteDeshacer = false;
+      var ultimoQuitado = null;
+      var proximoNumero = 104;
+
+      if (lamina) {
+        carrito = { americano: 1 };
+        productoActual = 'americano';
+        cantidadDetalle = 1;
+        pedido = { numero: 'CU-104', lineas: [{ nombre: 'Café americano', cantidad: 1, precio: 1.5 }], total: 1.5 };
+        proximoNumero = 105;
+      }
+
+      function $(id) { return document.getElementById(id); }
+      function dinero(v) { return '$' + v.toFixed(2); }
+      function icono(cat) { return '<svg aria-hidden="true"><use href="#' + (cat === 'comida' ? 'i-food' : 'i-cup') + '"/></svg>'; }
+      function producto(id) {
+        for (var i = 0; i < CATALOGO.length; i++) {
+          if (CATALOGO[i].id === id) return CATALOGO[i];
+        }
+        return CATALOGO[0];
+      }
+      function unidades() {
+        var n = 0;
+        for (var id in carrito) n += carrito[id];
+        return n;
+      }
+      function totalCarrito() {
+        var t = 0;
+        for (var id in carrito) t += producto(id).precio * carrito[id];
+        return t;
+      }
+      function desdeHash() {
+        var h = (window.location.hash || '').replace(/^#\/?/, '');
+        return PANTALLAS.indexOf(h) >= 0 ? h : 'inicio';
+      }
+      function irA(nombre) {
+        if (PANTALLAS.indexOf(nombre) < 0) nombre = 'inicio';
+        if (window.location.hash === '#/' + nombre) { mostrar(nombre); }
+        else { window.location.hash = '#/' + nombre; }
+      }
+      function mostrar(nombre) {
+        if (PANTALLAS.indexOf(nombre) < 0) nombre = 'inicio';
+        var cards = document.querySelectorAll('.screen-card');
+        for (var i = 0; i < cards.length; i++) {
+          cards[i].classList.toggle('is-active', cards[i].getAttribute('data-pantalla') === nombre);
+        }
+        render();
+        if (!lamina) window.scrollTo(0, 0);
+      }
+
+      function renderBadges() {
+        var n = unidades();
+        var contadores = document.querySelectorAll('.js-contador');
+        for (var i = 0; i < contadores.length; i++) contadores[i].textContent = n;
+      }
+
+      function renderMenu() {
+        var q = busqueda.trim().toLowerCase();
+        var visibles = CATALOGO.filter(function (p) {
+          var okCat = filtro === 'todo' || p.cat === filtro;
+          var okQ = !q || p.nombre.toLowerCase().indexOf(q) >= 0 || p.resumen.toLowerCase().indexOf(q) >= 0;
+          return okCat && okQ;
+        });
+        $('lista-productos').innerHTML = visibles.map(function (p) {
+          return '<div class="item">' +
+            '<div class="ficha">' +
+            '<span class="thumb">' + icono(p.cat) + '</span>' +
+            '<div class="info"><h3>' + p.nombre + '</h3><p>' + p.resumen + '</p><p class="precio">' + dinero(p.precio) + '</p></div>' +
+            '</div>' +
+            '<button type="button" class="control secondary" data-ver="' + p.id + '">Ver detalle</button>' +
+            '</div>';
+        }).join('');
+        $('menu-vacio').hidden = visibles.length > 0;
+        var chips = document.querySelectorAll('[data-filtro]');
+        for (var i = 0; i < chips.length; i++) {
+          chips[i].classList.toggle('is-active', chips[i].getAttribute('data-filtro') === filtro);
+        }
+      }
+
+      function renderDetalle() {
+        var p = producto(productoActual);
+        $('det-nombre').textContent = p.nombre;
+        $('det-desc').textContent = p.detalle;
+        $('det-precio').textContent = dinero(p.precio);
+        $('det-cantidad').textContent = cantidadDetalle;
+        $('det-thumb').innerHTML = icono(p.cat);
+        document.querySelector('[data-accion="detalle-menos"]').disabled = cantidadDetalle <= 1;
+        document.querySelector('[data-accion="detalle-mas"]').disabled = cantidadDetalle >= 9;
+      }
+
+      function renderPedido() {
+        var ids = Object.keys(carrito);
+        var vacio = ids.length === 0;
+        if (vacio) {
+          $('pedido-lista').innerHTML = '<p class="status" id="pedido-vacio">Tu pedido está vacío. Vuelve al menú para elegir productos.</p>';
+        } else {
+          $('pedido-lista').innerHTML = ids.map(function (id) {
+            var p = producto(id);
+            var c = carrito[id];
+            return '<div class="item">' +
+              '<div class="ficha">' +
+              '<span class="thumb">' + icono(p.cat) + '</span>' +
+              '<div class="info"><h3>' + p.nombre + '</h3><p class="precio">' + dinero(p.precio) + '</p></div>' +
+              '</div>' +
+              '<div class="row" style="margin-top:9px">' +
+              '<button type="button" class="control inline" data-accion="menos" data-id="' + id + '"' + (c <= 1 ? ' disabled' : '') + ' aria-label="Disminuir cantidad de ' + p.nombre + '">−</button>' +
+              '<strong>' + c + '</strong>' +
+              '<button type="button" class="control inline" data-accion="mas" data-id="' + id + '"' + (c >= 9 ? ' disabled' : '') + ' aria-label="Aumentar cantidad de ' + p.nombre + '">+</button>' +
+              '<button type="button" class="link-btn" data-accion="quitar" data-id="' + id + '">Quitar</button>' +
+              '</div></div>';
+          }).join('');
+        }
+        $('pedido-totales').hidden = vacio;
+        $('pedido-subtotal').textContent = dinero(totalCarrito());
+        $('btn-confirmar').hidden = vacio;
+        var a = $('pedido-aviso');
+        a.innerHTML = aviso + (permiteDeshacer ? ' <button type="button" class="link-btn" data-accion="deshacer">Deshacer</button>' : '');
+        a.hidden = !aviso;
+      }
+
+      function renderConfirmacion() {
+        $('conf-contenido').hidden = !pedido;
+        $('conf-vacio').hidden = !!pedido;
+        if (!pedido) return;
+        $('conf-numero').textContent = '#' + pedido.numero;
+        $('conf-lineas').innerHTML = pedido.lineas.map(function (l) {
+          return '<p>' + l.cantidad + ' × ' + l.nombre + '</p>';
+        }).join('');
+        $('conf-total').textContent = dinero(pedido.total);
+      }
+
+      function render() {
+        renderBadges();
+        renderMenu();
+        renderDetalle();
+        renderPedido();
+        renderConfirmacion();
+      }
+
+      function confirmar() {
+        var ids = Object.keys(carrito);
+        if (!ids.length) return;
+        var lineas = ids.map(function (id) {
+          return { nombre: producto(id).nombre, cantidad: carrito[id], precio: producto(id).precio };
+        });
+        pedido = { numero: 'CU-' + proximoNumero, lineas: lineas, total: totalCarrito() };
+        proximoNumero += 1;
+        carrito = {};
+        aviso = '';
+        permiteDeshacer = false;
+        irA('confirmacion');
+      }
+
+      document.addEventListener('click', function (e) {
+        var el = e.target && e.target.closest ? e.target.closest('[data-ir],[data-ver],[data-filtro],[data-accion]') : null;
+        if (!el) return;
+        aviso = '';
+        permiteDeshacer = false;
+
+        var ir = el.getAttribute('data-ir');
+        if (ir) { irA(ir); return; }
+
+        var ver = el.getAttribute('data-ver');
+        if (ver) { productoActual = ver; cantidadDetalle = 1; irA('detalle'); return; }
+
+        var f = el.getAttribute('data-filtro');
+        if (f) { filtro = f; render(); return; }
+
+        switch (el.getAttribute('data-accion')) {
+          case 'detalle-menos':
+            cantidadDetalle = Math.max(1, cantidadDetalle - 1);
+            render();
+            break;
+          case 'detalle-mas':
+            cantidadDetalle = Math.min(9, cantidadDetalle + 1);
+            render();
+            break;
+          case 'agregar':
+            carrito[productoActual] = Math.min(9, (carrito[productoActual] || 0) + cantidadDetalle);
+            aviso = producto(productoActual).nombre + ' agregado al pedido.';
+            cantidadDetalle = 1;
+            irA('pedido');
+            break;
+          case 'menos': {
+            var idMenos = el.getAttribute('data-id');
+            carrito[idMenos] = Math.max(1, carrito[idMenos] - 1);
+            render();
+            break;
+          }
+          case 'mas': {
+            var idMas = el.getAttribute('data-id');
+            carrito[idMas] = Math.min(9, carrito[idMas] + 1);
+            render();
+            break;
+          }
+          case 'quitar': {
+            var idQ = el.getAttribute('data-id');
+            ultimoQuitado = { id: idQ, cantidad: carrito[idQ] };
+            aviso = producto(idQ).nombre + ' se quitó del pedido.';
+            permiteDeshacer = true;
+            delete carrito[idQ];
+            render();
+            break;
+          }
+          case 'deshacer':
+            if (ultimoQuitado) {
+              carrito[ultimoQuitado.id] = (carrito[ultimoQuitado.id] || 0) + ultimoQuitado.cantidad;
+              aviso = producto(ultimoQuitado.id).nombre + ' restaurado.';
+              ultimoQuitado = null;
+            }
+            render();
+            break;
+          case 'confirmar':
+            confirmar();
+            break;
+        }
+      });
+
+      $('buscar').addEventListener('input', function () {
+        busqueda = this.value;
+        renderMenu();
+      });
+
+      window.addEventListener('hashchange', function () { mostrar(desdeHash()); });
+
+      mostrar(desdeHash());
+    })();
+  </script>
+</body>
+</html>
