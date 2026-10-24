@@ -1,0 +1,561 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="CaféU versión 3: prototipo navegable con teclado completo, recuperación de errores y gestión del pedido (agotado, cambiar hora de retiro y cancelar).">
+  <title>CaféU | Versión 3 (prototipo navegable)</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --crema: #faf6f0;
+      --crema-2: #f4ebe0;
+      --sup: #ffffff;
+      --cafe: #3e2723;
+      --cafe-2: #5d4037;
+      --caramelo: #bf360c;
+      --caramelo-2: #9f2d08;
+      --texto: #2b1d15;
+      --suave: #6d4c41;
+      --borde: #d9c9b8;
+      --ok: #2e7d32;
+      --ok-fondo: #e8f5e9;
+      --error: #b71c1c;
+      --error-fondo: #fdecea;
+      --aviso-fondo: #fff4e0;
+      font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, system-ui, sans-serif;
+      color: var(--texto);
+      background: var(--crema);
+    }
+    * { box-sizing: border-box; }
+    [hidden] { display: none !important; }
+    body { margin: 0; min-height: 100vh; background: var(--crema); }
+    .skip { position: absolute; left: 8px; top: -60px; z-index: 20; background: var(--cafe); color: #fff; padding: 10px 14px; border-radius: 8px; font-weight: 700; text-decoration: none; }
+    .skip:focus { top: 8px; }
+    .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
+    :focus-visible { outline: 3px solid var(--cafe); outline-offset: 2px; box-shadow: 0 0 0 5px #fff; }
+
+    .wrap { max-width: 460px; margin: 0 auto; padding: 18px 14px 40px; }
+    .app { background: var(--sup); border: 8px solid var(--cafe); border-radius: 30px; box-shadow: 0 18px 40px rgba(62,39,35,.16); min-height: 700px; display: flex; flex-direction: column; overflow: hidden; }
+    .appbar { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 12px 14px; border-bottom: 1px solid var(--borde); }
+    .marca { display: inline-flex; align-items: center; gap: 7px; color: var(--cafe); font-weight: 800; font-size: 1.1rem; }
+    .marca svg { color: var(--caramelo); }
+    main { flex: 1; padding: 16px; outline: none; }
+    main:focus { outline: none; }
+    h1 { color: var(--cafe); font-size: 1.3rem; margin: 2px 0 10px; outline: none; }
+    h2 { color: var(--cafe); font-size: 1rem; margin: 0 0 6px; }
+    h1:focus { outline: none; }
+    p { line-height: 1.5; margin: .35em 0; }
+    .muted { color: var(--suave); font-size: .88rem; }
+    .center { text-align: center; }
+
+    button, select, input { font: inherit; }
+    .btn { display: block; width: 100%; min-height: 46px; margin-top: 12px; padding: 11px 14px; border: 2px solid var(--caramelo); border-radius: 12px; background: var(--caramelo); color: #fff; font-weight: 700; font-size: .95rem; text-align: center; cursor: pointer; }
+    .btn:hover { background: var(--caramelo-2); border-color: var(--caramelo-2); }
+    .btn.sec { background: var(--sup); color: var(--caramelo-2); }
+    .btn.sec:hover { background: var(--aviso-fondo); }
+    .btn.peligro { background: var(--sup); color: var(--error); border-color: var(--error); }
+    .btn.peligro:hover { background: var(--error-fondo); }
+    .btn:disabled { background: #ece4db; border-color: #cdbfb0; color: #5f5248; cursor: not-allowed; }
+    .btn.mini { display: inline-flex; align-items: center; justify-content: center; width: 46px; margin: 0; padding: 0; font-size: 1.2rem; }
+    .link { background: none; border: 0; padding: 10px 6px; min-height: 44px; color: var(--caramelo-2); font-weight: 700; text-decoration: underline; cursor: pointer; }
+    .pill { display: inline-flex; align-items: center; gap: 6px; min-height: 44px; padding: 8px 14px; border: 2px solid var(--caramelo); border-radius: 999px; background: var(--crema-2); color: var(--caramelo-2); font-weight: 700; font-size: .85rem; cursor: pointer; }
+    .pill .n { background: var(--caramelo); color: #fff; border-radius: 999px; min-width: 20px; padding: 0 6px; text-align: center; }
+    .tabbar { display: flex; border-top: 1px solid var(--borde); background: var(--sup); }
+    .tab { flex: 1; min-height: 52px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; background: none; border: 0; color: var(--suave); font-weight: 700; font-size: .74rem; cursor: pointer; }
+    .tab svg { width: 20px; height: 20px; }
+    .tab[aria-current="page"] { color: var(--caramelo-2); box-shadow: inset 0 3px 0 var(--caramelo); }
+
+    .progreso { display: flex; gap: 6px; margin-bottom: 12px; padding: 0; list-style: none; }
+    .progreso li { flex: 1; border-top: 4px solid var(--borde); padding-top: 5px; text-align: center; color: var(--suave); font-size: .72rem; font-weight: 700; }
+    .progreso li.on { border-top-color: var(--caramelo); color: var(--caramelo-2); }
+
+    .card { border: 1px solid var(--borde); border-radius: 16px; padding: 12px; margin: 10px 0; box-shadow: 0 4px 8px rgba(62,39,35,.08); background: var(--sup); }
+    .ficha { display: flex; gap: 12px; align-items: flex-start; }
+    .thumb { flex: 0 0 54px; height: 54px; border-radius: 12px; background: linear-gradient(150deg,#f2e3d3,#e3cbb2); color: var(--cafe-2); display: flex; align-items: center; justify-content: center; }
+    .thumb svg { width: 28px; height: 28px; }
+    .thumb.big { flex-basis: auto; width: 100%; height: 120px; margin-bottom: 12px; }
+    .thumb.big svg { width: 54px; height: 54px; }
+    .ficha h2 { margin: 0 0 2px; }
+    .precio { color: var(--caramelo-2); font-weight: 800; }
+    .row { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+    .etiqueta { display: inline-block; padding: 2px 9px; border-radius: 999px; font-size: .74rem; font-weight: 700; }
+    .etiqueta.agotado { background: #ece4db; color: #4a3b30; border: 1px solid #b6a698; }
+    .etiqueta.pocas { background: var(--aviso-fondo); color: #7a3b00; border: 1px solid #e0a14a; }
+
+    .search { width: 100%; min-height: 46px; margin: 8px 0; padding: 10px 14px; border: 2px solid var(--borde); border-radius: 999px; background: var(--crema-2); color: var(--texto); }
+    .chips { display: flex; flex-wrap: wrap; gap: 8px; margin: 10px 0; padding: 0; border: 0; }
+    .chip { min-height: 44px; padding: 8px 16px; border: 2px solid var(--borde); border-radius: 999px; background: var(--sup); color: var(--cafe-2); font-weight: 700; cursor: pointer; }
+    .chip[aria-pressed="true"] { background: var(--cafe); border-color: var(--cafe); color: #fff; }
+
+    .msg { margin: 12px 0; padding: 12px 14px; border-radius: 12px; border: 1px solid var(--borde); background: var(--crema-2); font-size: .9rem; }
+    .msg.ok { background: var(--ok-fondo); border-color: #a5d6a7; color: #1b5e20; font-weight: 600; }
+    .msg.error { background: var(--error-fondo); border: 2px solid var(--error); color: #7f1010; }
+    .msg.aviso { background: var(--aviso-fondo); border-color: #e0a14a; color: #5c2b00; }
+    .msg:focus { outline: 3px solid var(--cafe); outline-offset: 2px; }
+    .msg ul { margin: 6px 0 0; padding-left: 20px; }
+    .msg a { color: inherit; font-weight: 700; display: inline-block; min-height: 28px; padding: 4px 0; }
+
+    .campo { margin: 14px 0; }
+    .campo label { display: block; font-weight: 700; margin-bottom: 5px; color: var(--cafe); }
+    .campo .ayuda { display: block; color: var(--suave); font-size: .82rem; margin-bottom: 5px; }
+    .campo input, .campo select { width: 100%; min-height: 46px; padding: 10px 12px; border: 2px solid #8d7b6c; border-radius: 10px; background: #fff; color: var(--texto); }
+    .campo [aria-invalid="true"] { border-color: var(--error); background: var(--error-fondo); }
+    .campo .err { display: block; margin-top: 5px; color: var(--error); font-weight: 700; font-size: .85rem; }
+
+    .check { width: 62px; height: 62px; margin: 6px auto 10px; display: flex; align-items: center; justify-content: center; border: 3px solid var(--ok); border-radius: 50%; background: var(--ok-fondo); color: var(--ok); }
+    .check.x { border-color: var(--error); background: var(--error-fondo); color: var(--error); }
+    .check svg { width: 32px; height: 32px; }
+    .spinner { width: 54px; height: 54px; margin: 30px auto 14px; border: 6px solid var(--borde); border-top-color: var(--caramelo); border-radius: 50%; animation: gira 0.9s linear infinite; }
+    @keyframes gira { to { transform: rotate(360deg); } }
+    @media (prefers-reduced-motion: reduce) { .spinner { animation: none; border-top-color: var(--caramelo); border-right-color: var(--caramelo); } }
+    .barra { height: 8px; margin: 10px 0; border-radius: 999px; background: var(--borde); overflow: hidden; }
+    .barra span { display: block; height: 100%; width: 0; background: var(--caramelo); transition: width 1.2s linear; }
+
+    dialog { max-width: 380px; width: calc(100% - 32px); border: 3px solid var(--cafe); border-radius: 18px; padding: 20px; color: var(--texto); }
+    dialog::backdrop { background: rgba(43,29,21,.6); }
+    .nota-pie { text-align: center; color: var(--suave); font-size: .8rem; margin-top: 14px; }
+    .nota-pie a { color: var(--caramelo-2); }
+  </style>
+</head>
+<body>
+  <a class="skip" href="#contenido">Saltar al contenido</a>
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+    <symbol id="i-cup" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h11v6a5 5 0 0 1-5 5H9a5 5 0 0 1-5-5z"/><path d="M15 9h2.4a2.3 2.3 0 0 1 0 4.6H15"/><path d="M8 3.5v2M11 3v2"/></symbol>
+    <symbol id="i-home" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 11 12 4l8.5 7"/><path d="M5.5 10v9h13v-9"/></symbol>
+    <symbol id="i-menu" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M4 12h16M4 17h11"/></symbol>
+    <symbol id="i-bag" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8h12l-1.1 11H7.1z"/><path d="M9 8a3 3 0 0 1 6 0"/></symbol>
+    <symbol id="i-food" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 14a8 8 0 0 1 16 0z"/><path d="M3 18h18"/></symbol>
+    <symbol id="i-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5 10 17 19 7"/></symbol>
+    <symbol id="i-x" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 6l12 12M18 6 6 18"/></symbol>
+  </svg>
+
+  <div class="wrap">
+    <div class="app">
+      <header class="appbar">
+        <span class="marca"><svg width="20" height="20" aria-hidden="true"><use href="#i-cup"/></svg> CaféU</span>
+        <button type="button" class="pill" data-ir="pedido" id="btn-pedido">Mi pedido <span class="n" id="contador" aria-label="productos en el pedido">0</span></button>
+      </header>
+      <main id="contenido" tabindex="-1"></main>
+      <nav class="tabbar" aria-label="Navegación principal">
+        <button type="button" class="tab" data-ir="inicio" data-tab="inicio"><svg aria-hidden="true"><use href="#i-home"/></svg>Inicio</button>
+        <button type="button" class="tab" data-ir="menu" data-tab="menu"><svg aria-hidden="true"><use href="#i-menu"/></svg>Menú</button>
+        <button type="button" class="tab" data-ir="pedido" data-tab="pedido"><svg aria-hidden="true"><use href="#i-bag"/></svg>Mi pedido</button>
+      </nav>
+    </div>
+    <footer class="nota-pie">
+      <p>CaféU · versión 3 · navegable con teclado: <kbd>Tab</kbd>, <kbd>Enter</kbd>, <kbd>Esc</kbd>.</p>
+      <div id="anuncio" class="sr-only" role="status" aria-live="polite"></div>
+    </footer>
+  </div>
+
+  <dialog id="dlg-cancelar" aria-labelledby="dlg-titulo" aria-describedby="dlg-desc">
+    <h2 id="dlg-titulo">¿Cancelar el pedido?</h2>
+    <p id="dlg-desc">Se cancelará el pedido <strong id="dlg-num"></strong>. Podrás restaurarlo justo después.</p>
+    <button type="button" class="btn peligro" data-accion="cancelar-si">Sí, cancelar pedido</button>
+    <button type="button" class="btn sec" data-accion="cancelar-no" autofocus>No, mantener mi pedido</button>
+  </dialog>
+
+  <script>
+    (function () {
+      'use strict';
+
+      var CATALOGO = [
+        { id: 'americano', nombre: 'Café americano', cat: 'bebidas', resumen: 'Café recién preparado', detalle: 'Café preparado al momento. Tamaño mediano.', precio: 1.5, estado: 'ok' },
+        { id: 'sanduche', nombre: 'Sanduche de queso', cat: 'comida', resumen: 'Preparado al momento', detalle: 'Sanduche tostado con queso. Tamaño mediano.', precio: 2.75, estado: 'ok' },
+        { id: 'empanada', nombre: 'Empanada de pollo', cat: 'comida', resumen: 'Horneada esta mañana', detalle: 'Empanada horneada con relleno de pollo.', precio: 1.5, estado: 'pocas' },
+        { id: 'jugo', nombre: 'Jugo de naranja', cat: 'bebidas', resumen: 'Natural, sin azúcar añadida', detalle: 'Jugo natural de naranja.', precio: 1.25, estado: 'agotado' }
+      ];
+      var HORAS = ['10:00', '10:30', '11:00', '11:30', '12:00'];
+      var PANTALLAS = ['inicio', 'menu', 'detalle', 'pedido', 'procesando', 'confirmacion', 'hora', 'cancelado'];
+      var TITULOS = { inicio: 'Inicio', menu: 'Menú de hoy', detalle: 'Detalle del producto', pedido: 'Mi pedido', procesando: 'Enviando pedido', confirmacion: 'Pedido confirmado', hora: 'Cambiar hora de retiro', cancelado: 'Pedido cancelado' };
+
+      var carrito = {};
+      var datos = { nombre: '', hora: '' };
+      var errores = {};
+      var pedido = null;
+      var cancelado = null;
+      var ultimoQuitado = null;
+      var productoActual = 'americano';
+      var cantidad = 1;
+      var filtro = 'todo';
+      var busqueda = '';
+      var aviso = '';
+      var avisoTipo = 'ok';
+      var deshacerQuitar = false;
+      var conflicto = null;
+      var numero = 104;
+      var temporizador = null;
+      var enfocarDespues = null;
+      var pantalla = 'inicio';
+
+      var main = document.getElementById('contenido');
+      function $(id) { return document.getElementById(id); }
+      function esc(s) { return String(s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
+      function dinero(v) { return '$' + v.toFixed(2); }
+      function prod(id) { return CATALOGO.filter(function (p) { return p.id === id; })[0] || CATALOGO[0]; }
+      function icono(cat) { return '<svg aria-hidden="true"><use href="#' + (cat === 'comida' ? 'i-food' : 'i-cup') + '"/></svg>'; }
+      function unidades() { var n = 0; for (var k in carrito) n += carrito[k]; return n; }
+      function total() { var t = 0; for (var k in carrito) t += prod(k).precio * carrito[k]; return t; }
+      function anunciar(t) { var a = $('anuncio'); a.textContent = ''; setTimeout(function () { a.textContent = t; }, 40); }
+      function progreso(paso) {
+        var pasos = ['Carta', 'Pedido', 'Listo'];
+        return '<ol class="progreso" aria-label="Progreso del pedido">' + pasos.map(function (p, i) {
+          return '<li' + (i === paso ? ' class="on" aria-current="step"' : '') + '>' + p + '</li>';
+        }).join('') + '</ol>';
+      }
+      function etiqueta(p) {
+        if (p.estado === 'agotado') return '<span class="etiqueta agotado">Agotado hoy</span>';
+        if (p.estado === 'pocas') return '<span class="etiqueta pocas">Quedan pocas unidades</span>';
+        return '';
+      }
+
+      function irA(nombre) {
+        if (PANTALLAS.indexOf(nombre) < 0) nombre = 'inicio';
+        if (window.location.hash !== '#/' + nombre) { window.location.hash = '#/' + nombre; }
+        mostrar(nombre);
+      }
+      function desdeHash() {
+        var h = (window.location.hash || '').replace(/^#\/?/, '');
+        return PANTALLAS.indexOf(h) >= 0 ? h : 'inicio';
+      }
+
+      /* ---------- vistas ---------- */
+      function vInicio() {
+        return progreso(0) +
+          '<div class="card" style="background:var(--cafe);border-color:var(--cafe);color:#fff;padding:20px">' +
+          '<h1 style="color:#fff;margin-top:0">Pide antes de llegar</h1>' +
+          '<p style="color:#ffe9cf">Consulta la carta de hoy, arma tu pedido y elige a qué hora lo retiras.</p>' +
+          '<button type="button" class="btn" data-ir="menu" style="background:#fff;color:var(--cafe);border-color:#fff">Ver menú</button></div>' +
+          '<h2 style="margin-top:18px">Horario de atención</h2>' +
+          '<div class="card"><div class="row"><span>Lunes a viernes</span><span class="precio">7:00 – 19:00</span></div>' +
+          '<div class="row"><span>Sábado</span><span class="precio">8:00 – 13:00</span></div></div>';
+      }
+
+      function vMenu() {
+        var q = busqueda.trim().toLowerCase();
+        var vis = CATALOGO.filter(function (p) {
+          return (filtro === 'todo' || p.cat === filtro) && (!q || (p.nombre + ' ' + p.resumen).toLowerCase().indexOf(q) >= 0);
+        });
+        var lista = vis.map(function (p) {
+          var ag = p.estado === 'agotado';
+          return '<div class="card"><div class="ficha"><span class="thumb">' + icono(p.cat) + '</span><div>' +
+            '<h2>' + p.nombre + '</h2><p class="muted">' + p.resumen + '</p>' +
+            '<p><span class="precio">' + dinero(p.precio) + '</span> ' + etiqueta(p) + '</p></div></div>' +
+            '<button type="button" class="btn sec" data-ver="' + p.id + '" aria-label="' + (ag ? 'Ver alternativas a ' : 'Ver detalle de ') + p.nombre + '">' + (ag ? 'Ver alternativas' : 'Ver detalle') + '</button></div>';
+        }).join('');
+        var vacio = vis.length ? '' :
+          '<div class="msg" role="status">No encontramos productos con esa búsqueda. <button type="button" class="link" data-accion="limpiar">Mostrar todo el menú</button></div>';
+        return progreso(0) + '<h1 tabindex="-1">Menú de hoy</h1>' +
+          '<label class="sr-only" for="buscar">Buscar productos</label>' +
+          '<input class="search" id="buscar" type="search" placeholder="Buscar productos…" autocomplete="off" value="' + esc(busqueda) + '">' +
+          '<fieldset class="chips"><legend class="sr-only">Filtrar por categoría</legend>' +
+          ['todo', 'bebidas', 'comida'].map(function (f) {
+            return '<button type="button" class="chip" data-filtro="' + f + '" aria-pressed="' + (filtro === f) + '">' + f.charAt(0).toUpperCase() + f.slice(1) + '</button>';
+          }).join('') + '</fieldset>' +
+          '<p class="muted" id="menu-conteo" role="status">' + vis.length + (vis.length === 1 ? ' producto' : ' productos') + '</p>' +
+          '<div id="menu-lista">' + lista + vacio + '</div>';
+      }
+
+      function vDetalle() {
+        var p = prod(productoActual);
+        var alternativas = CATALOGO.filter(function (x) { return x.id !== p.id && x.estado !== 'agotado' && x.cat === p.cat; });
+        var cuerpo;
+        if (p.estado === 'agotado') {
+          cuerpo = '<div class="msg aviso" tabindex="-1"><strong>' + p.nombre + ' está agotado hoy.</strong> Te sugerimos una alternativa de la misma categoría:</div>' +
+            alternativas.map(function (a) {
+              return '<div class="card"><div class="ficha"><span class="thumb">' + icono(a.cat) + '</span><div><h2>' + a.nombre + '</h2><p class="precio">' + dinero(a.precio) + '</p></div></div>' +
+                '<button type="button" class="btn" data-ver="' + a.id + '">Ver ' + a.nombre + '</button></div>';
+            }).join('') +
+            '<button type="button" class="btn" disabled aria-disabled="true">Agregar al pedido (no disponible)</button>';
+        } else {
+          cuerpo = '<p class="muted">Cantidad</p><div class="row" role="group" aria-label="Cantidad">' +
+            '<button type="button" class="btn mini" data-accion="d-menos" aria-label="Disminuir cantidad"' + (cantidad <= 1 ? ' disabled' : '') + '>−</button>' +
+            '<strong aria-live="polite" id="d-cant">' + cantidad + '</strong>' +
+            '<button type="button" class="btn mini" data-accion="d-mas" aria-label="Aumentar cantidad"' + (cantidad >= 9 ? ' disabled' : '') + '>+</button></div>' +
+            '<button type="button" class="btn" data-accion="agregar">Agregar al pedido · ' + dinero(p.precio * cantidad) + '</button>';
+        }
+        return progreso(0) + '<button type="button" class="pill" data-ir="menu">‹ Volver al menú</button>' +
+          '<div class="thumb big" style="margin-top:12px">' + icono(p.cat) + '</div>' +
+          '<h1 tabindex="-1">' + p.nombre + '</h1><p class="muted">' + p.detalle + '</p>' +
+          '<p><span class="precio" style="font-size:1.1rem">' + dinero(p.precio) + '</span> ' + etiqueta(p) + '</p>' + cuerpo;
+      }
+
+      function vPedido() {
+        var ids = Object.keys(carrito);
+        var resumenErr = '';
+        var claves = Object.keys(errores);
+        if (claves.length) {
+          resumenErr = '<div class="msg error" id="resumen-errores" role="alert" tabindex="-1"><strong>Revisa ' + (claves.length === 1 ? 'este dato' : 'estos ' + claves.length + ' datos') + ' para continuar:</strong><ul>' +
+            claves.map(function (k) { return '<li><a href="#" data-foco="' + k + '">' + esc(errores[k]) + '</a></li>'; }).join('') + '</ul></div>';
+        }
+        var confl = '';
+        if (conflicto) {
+          var p = prod(conflicto);
+          var alt = CATALOGO.filter(function (x) { return x.estado === 'ok' && x.cat === p.cat; })[0];
+          confl = '<div class="msg error" id="conflicto" role="alert" tabindex="-1"><strong>' + p.nombre + ' se agotó mientras confirmabas.</strong> Tu pedido no se envió. Elige cómo continuar:' +
+            '<button type="button" class="btn" data-accion="c-quitar">Quitar ' + p.nombre + ' y continuar</button>' +
+            (alt ? '<button type="button" class="btn sec" data-accion="c-cambiar" data-alt="' + alt.id + '">Cambiar por ' + alt.nombre + '</button>' : '') + '</div>';
+        }
+        var av = aviso ? '<div class="msg ' + avisoTipo + '" tabindex="-1" id="aviso">' + esc(aviso) +
+          (deshacerQuitar ? ' <button type="button" class="link" data-accion="deshacer">Deshacer</button>' : '') + '</div>' : '';
+        if (!ids.length) {
+          return progreso(1) + '<h1 tabindex="-1">Mi pedido</h1>' + av +
+            '<div class="msg">Tu pedido está vacío. Elige productos en el menú para continuar.</div>' +
+            '<button type="button" class="btn" data-ir="menu">Ir al menú</button>';
+        }
+        var lineas = ids.map(function (id) {
+          var p = prod(id), c = carrito[id];
+          return '<div class="card"><div class="ficha"><span class="thumb">' + icono(p.cat) + '</span><div><h2>' + p.nombre + '</h2><p class="precio">' + dinero(p.precio) + '</p>' + etiqueta(p) + '</div></div>' +
+            '<div class="row" style="margin-top:8px"><div class="row" role="group" aria-label="Cantidad de ' + p.nombre + '" style="gap:12px">' +
+            '<button type="button" class="btn mini" data-accion="menos" data-id="' + id + '" aria-label="Disminuir cantidad de ' + p.nombre + '"' + (c <= 1 ? ' disabled' : '') + '>−</button>' +
+            '<strong>' + c + '</strong>' +
+            '<button type="button" class="btn mini" data-accion="mas" data-id="' + id + '" aria-label="Aumentar cantidad de ' + p.nombre + '"' + (c >= 9 ? ' disabled' : '') + '>+</button></div>' +
+            '<button type="button" class="link" data-accion="quitar" data-id="' + id + '" aria-label="Quitar ' + p.nombre + ' del pedido">Quitar</button></div></div>';
+        }).join('');
+        return progreso(1) + '<h1 tabindex="-1">Revisa tu pedido</h1>' + av + confl + resumenErr + lineas +
+          '<div class="card row"><span>Total</span><strong class="precio" style="font-size:1.1rem">' + dinero(total()) + '</strong></div>' +
+          '<form id="form-pedido" novalidate>' +
+          '<div class="campo"><label for="f-nombre">Nombre para el pedido</label><span class="ayuda" id="a-nombre">Lo usaremos para entregártelo al retirar.</span>' +
+          '<input id="f-nombre" name="nombre" type="text" autocomplete="name" value="' + esc(datos.nombre) + '" aria-describedby="a-nombre' + (errores.nombre ? ' e-nombre' : '') + '"' + (errores.nombre ? ' aria-invalid="true"' : '') + '>' +
+          (errores.nombre ? '<span class="err" id="e-nombre">' + esc(errores.nombre) + '</span>' : '') + '</div>' +
+          '<div class="campo"><label for="f-hora">Hora de retiro</label><span class="ayuda" id="a-hora">Elige un horario disponible de hoy.</span>' +
+          '<select id="f-hora" name="hora" aria-describedby="a-hora' + (errores.hora ? ' e-hora' : '') + '"' + (errores.hora ? ' aria-invalid="true"' : '') + '>' + opcionesHora(datos.hora) + '</select>' +
+          (errores.hora ? '<span class="err" id="e-hora">' + esc(errores.hora) + '</span>' : '') + '</div>' +
+          '<button type="submit" class="btn">Confirmar pedido</button></form>' +
+          '<button type="button" class="btn sec" data-ir="menu">Seguir comprando</button>';
+      }
+      function opcionesHora(sel) {
+        return '<option value="">Elige una hora</option>' + HORAS.map(function (h) { return '<option value="' + h + '"' + (sel === h ? ' selected' : '') + '>' + h + '</option>'; }).join('');
+      }
+
+      function vProcesando() {
+        return progreso(1) + '<div class="center"><div class="spinner" aria-hidden="true"></div>' +
+          '<h1 tabindex="-1">Enviando tu pedido…</h1><p class="muted">Estamos avisando a la cafetería. No cierres esta pantalla.</p>' +
+          '<div class="barra" aria-hidden="true"><span id="barra"></span></div></div>' +
+          '<button type="button" class="btn sec" data-accion="cancelar-envio">Cancelar envío</button>';
+      }
+
+      function vConfirmacion() {
+        if (!pedido) {
+          return progreso(2) + '<h1 tabindex="-1">Pedido confirmado</h1><div class="msg">Todavía no hay un pedido confirmado.</div><button type="button" class="btn" data-ir="menu">Ir al menú</button>';
+        }
+        var av = aviso ? '<div class="msg ok" tabindex="-1" id="aviso">' + esc(aviso) + '</div>' : '';
+        return progreso(2) + '<div class="check"><svg aria-hidden="true"><use href="#i-check"/></svg></div>' +
+          '<h1 class="center" tabindex="-1">¡Pedido confirmado!</h1>' + av +
+          '<div class="msg ok center">Número de pedido<br><strong style="font-size:1.3rem">#' + pedido.numero + '</strong></div>' +
+          '<div class="card"><h2>Resumen</h2>' + pedido.lineas.map(function (l) { return '<p>' + l.cantidad + ' × ' + l.nombre + '</p>'; }).join('') +
+          '<hr style="border:0;border-top:1px dashed var(--borde)"><div class="row"><span>Total</span><strong class="precio">' + dinero(pedido.total) + '</strong></div>' +
+          '<p class="muted">Retira a nombre de <strong>' + esc(pedido.nombre) + '</strong> a las <strong>' + pedido.hora + '</strong>.</p></div>' +
+          '<button type="button" class="btn sec" data-ir="hora">Cambiar hora de retiro</button>' +
+          '<button type="button" class="btn peligro" data-accion="cancelar-abrir">Cancelar pedido</button>' +
+          '<button type="button" class="btn sec" data-ir="menu">Volver al menú</button>';
+      }
+
+      function vHora() {
+        if (!pedido) { return '<h1 tabindex="-1">Cambiar hora de retiro</h1><div class="msg">No hay un pedido activo para modificar.</div><button type="button" class="btn" data-ir="menu">Ir al menú</button>'; }
+        var e = errores.hora ? '<div class="msg error" id="resumen-errores" role="alert" tabindex="-1"><strong>No se pudo cambiar la hora:</strong> <a href="#" data-foco="hora">' + esc(errores.hora) + '</a></div>' : '';
+        return '<button type="button" class="pill" data-ir="confirmacion">‹ Volver al pedido</button>' +
+          '<h1 tabindex="-1" style="margin-top:12px">Cambiar hora de retiro</h1>' +
+          '<p class="muted">Pedido <strong>#' + pedido.numero + '</strong> · hora actual <strong>' + pedido.hora + '</strong></p>' + e +
+          '<form id="form-hora" novalidate><div class="campo"><label for="f-hora">Nueva hora de retiro</label>' +
+          '<span class="ayuda" id="a-hora">Elige una hora distinta a la actual.</span>' +
+          '<select id="f-hora" name="hora" aria-describedby="a-hora' + (errores.hora ? ' e-hora' : '') + '"' + (errores.hora ? ' aria-invalid="true"' : '') + '>' + opcionesHora(datos.horaNueva || '') + '</select>' +
+          (errores.hora ? '<span class="err" id="e-hora">' + esc(errores.hora) + '</span>' : '') + '</div>' +
+          '<button type="submit" class="btn">Guardar nueva hora</button></form>' +
+          '<button type="button" class="btn sec" data-ir="confirmacion">Mantener la hora actual</button>';
+      }
+
+      function vCancelado() {
+        if (!cancelado) { return '<h1 tabindex="-1">Pedido cancelado</h1><div class="msg">No hay pedidos cancelados.</div><button type="button" class="btn" data-ir="menu">Ir al menú</button>'; }
+        return progreso(2) + '<div class="check x"><svg aria-hidden="true"><use href="#i-x"/></svg></div>' +
+          '<h1 class="center" tabindex="-1">Pedido cancelado</h1>' +
+          '<div class="msg center">El pedido <strong>#' + cancelado.numero + '</strong> se canceló y no se cobrará nada.</div>' +
+          '<button type="button" class="btn" data-accion="restaurar">Restaurar pedido #' + cancelado.numero + '</button>' +
+          '<button type="button" class="btn sec" data-ir="menu">Volver al menú</button>';
+      }
+
+      var VISTAS = { inicio: vInicio, menu: vMenu, detalle: vDetalle, pedido: vPedido, procesando: vProcesando, confirmacion: vConfirmacion, hora: vHora, cancelado: vCancelado };
+
+      function pintar(opciones) {
+        opciones = opciones || {};
+        main.innerHTML = VISTAS[pantalla]();
+        $('contador').textContent = unidades();
+        var tabs = document.querySelectorAll('[data-tab]');
+        var tabActiva = { inicio: 'inicio', menu: 'menu', detalle: 'menu', pedido: 'pedido', procesando: 'pedido', confirmacion: 'pedido', hora: 'pedido', cancelado: 'pedido' }[pantalla];
+        for (var i = 0; i < tabs.length; i++) {
+          if (tabs[i].getAttribute('data-tab') === tabActiva) tabs[i].setAttribute('aria-current', 'page'); else tabs[i].removeAttribute('aria-current');
+        }
+        if (pantalla === 'procesando') {
+          requestAnimationFrame(function () { var b = $('barra'); if (b) b.style.width = '100%'; });
+        }
+      }
+
+      function enfocar(selector) {
+        var lista = Array.isArray(selector) ? selector : [selector];
+        for (var i = 0; i < lista.length; i++) {
+          var el = main.querySelector(lista[i]);
+          if (el && !el.disabled) { el.focus(); return; }
+        }
+      }
+
+      function mostrar(nombre) {
+        if (temporizador && nombre !== 'procesando') { clearTimeout(temporizador); temporizador = null; }
+        pantalla = nombre;
+        if (nombre === 'procesando' && !temporizador) { iniciarEnvio(); }
+        pintar();
+        window.scrollTo(0, 0);
+        var h = main.querySelector('h1');
+        var prioridad = main.querySelector('#conflicto, #resumen-errores');
+        if (enfocarDespues) { enfocar(enfocarDespues); enfocarDespues = null; }
+        else if (prioridad) { prioridad.focus(); }
+        else if (h) { h.focus(); }
+        anunciar(TITULOS[nombre]);
+      }
+
+      function rerender(foco) {
+        var sel = document.activeElement && document.activeElement.id;
+        var pos = (document.activeElement && document.activeElement.selectionStart);
+        pintar();
+        if (foco) { enfocar(foco); }
+        else if (sel) {
+          var e = document.getElementById(sel);
+          if (e) { e.focus(); if (pos != null && e.setSelectionRange) { try { e.setSelectionRange(pos, pos); } catch (x) {} } }
+        }
+      }
+
+      /* ---------- envío (procesando) ---------- */
+      function iniciarEnvio() {
+        temporizador = setTimeout(function () {
+          temporizador = null;
+          var ids = Object.keys(carrito);
+          if (ids.indexOf('empanada') >= 0 && prod('empanada').estado === 'pocas') {
+            prod('empanada').estado = 'agotado';
+            conflicto = 'empanada';
+            irA('pedido');
+            anunciar('Error: Empanada de pollo se agotó. Tu pedido no se envió.');
+            return;
+          }
+          pedido = {
+            numero: 'CU-' + numero++,
+            lineas: ids.map(function (id) { return { nombre: prod(id).nombre, cantidad: carrito[id], precio: prod(id).precio }; }),
+            total: total(), nombre: datos.nombre.trim(), hora: datos.hora
+          };
+          carrito = {};
+          aviso = '';
+          irA('confirmacion');
+        }, 1300);
+      }
+
+      /* ---------- acciones ---------- */
+      function validarPedido() {
+        var e = {};
+        if (datos.nombre.trim().length < 2) e.nombre = 'Escribe tu nombre (mínimo 2 letras) para identificar tu pedido.';
+        if (!datos.hora) e.hora = 'Elige una hora de retiro de la lista.';
+        return e;
+      }
+
+      document.addEventListener('click', function (ev) {
+        var el = ev.target.closest ? ev.target.closest('[data-ir],[data-ver],[data-filtro],[data-accion],[data-foco]') : null;
+        if (!el) return;
+        var foco = el.getAttribute('data-foco');
+        if (foco) { ev.preventDefault(); var campo = $('f-' + foco); if (campo) campo.focus(); return; }
+        var ir = el.getAttribute('data-ir');
+        if (ir) {
+          if (['pedido', 'menu', 'inicio'].indexOf(ir) >= 0) { aviso = ''; deshacerQuitar = false; if (ir !== 'pedido') { errores = {}; conflicto = null; } }
+          if (ir === 'hora') { errores = {}; datos.horaNueva = ''; }
+          irA(ir); return;
+        }
+        var ver = el.getAttribute('data-ver');
+        if (ver) { productoActual = ver; cantidad = 1; irA('detalle'); return; }
+        var f = el.getAttribute('data-filtro');
+        if (f) { filtro = f; rerender('[data-filtro="' + f + '"]'); anunciar('Filtro ' + f); return; }
+
+        var id = el.getAttribute('data-id');
+        switch (el.getAttribute('data-accion')) {
+          case 'limpiar': busqueda = ''; filtro = 'todo'; rerender('#buscar'); break;
+          case 'd-menos': cantidad = Math.max(1, cantidad - 1); rerender(['[data-accion="d-menos"]', '[data-accion="d-mas"]']); break;
+          case 'd-mas': cantidad = Math.min(9, cantidad + 1); rerender(['[data-accion="d-mas"]', '[data-accion="d-menos"]']); break;
+          case 'agregar':
+            carrito[productoActual] = Math.min(9, (carrito[productoActual] || 0) + cantidad);
+            aviso = prod(productoActual).nombre + ' agregado al pedido.'; avisoTipo = 'ok'; deshacerQuitar = false;
+            enfocarDespues = '#aviso';
+            irA('pedido'); break;
+          case 'menos': carrito[id] = Math.max(1, carrito[id] - 1); aviso = ''; rerender(['[data-accion="menos"][data-id="' + id + '"]', '[data-accion="mas"][data-id="' + id + '"]']); break;
+          case 'mas': carrito[id] = Math.min(9, carrito[id] + 1); aviso = ''; rerender(['[data-accion="mas"][data-id="' + id + '"]', '[data-accion="menos"][data-id="' + id + '"]']); break;
+          case 'quitar':
+            ultimoQuitado = { id: id, cantidad: carrito[id] };
+            delete carrito[id];
+            aviso = prod(id).nombre + ' se quitó del pedido.'; avisoTipo = 'ok'; deshacerQuitar = true;
+            rerender('[data-accion="deshacer"]'); anunciar(aviso); break;
+          case 'deshacer':
+            if (ultimoQuitado) { carrito[ultimoQuitado.id] = (carrito[ultimoQuitado.id] || 0) + ultimoQuitado.cantidad; aviso = prod(ultimoQuitado.id).nombre + ' restaurado.'; ultimoQuitado = null; }
+            deshacerQuitar = false; rerender('h1'); anunciar(aviso); break;
+          case 'c-quitar':
+            delete carrito[conflicto]; aviso = prod(conflicto).nombre + ' se quitó de tu pedido. Revisa los datos y confirma de nuevo.'; avisoTipo = 'aviso';
+            conflicto = null; rerender('#aviso'); anunciar(aviso); break;
+          case 'c-cambiar': {
+            var alt = el.getAttribute('data-alt'), cant = carrito[conflicto];
+            delete carrito[conflicto]; carrito[alt] = Math.min(9, (carrito[alt] || 0) + cant);
+            aviso = 'Cambiamos el producto por ' + prod(alt).nombre + '. Revisa los datos y confirma de nuevo.'; avisoTipo = 'aviso';
+            conflicto = null; rerender('#aviso'); anunciar(aviso); break;
+          }
+          case 'cancelar-envio':
+            if (temporizador) { clearTimeout(temporizador); temporizador = null; }
+            aviso = 'Cancelaste el envío. Tu pedido sigue guardado.'; avisoTipo = 'aviso';
+            enfocarDespues = '#aviso'; irA('pedido'); break;
+          case 'cancelar-abrir': $('dlg-num').textContent = '#' + pedido.numero; $('dlg-cancelar').showModal(); break;
+          case 'cancelar-no': $('dlg-cancelar').close(); break;
+          case 'cancelar-si':
+            $('dlg-cancelar').close();
+            cancelado = pedido; pedido = null; aviso = '';
+            enfocarDespues = null; irA('cancelado'); break;
+          case 'restaurar':
+            pedido = cancelado; cancelado = null; aviso = 'Pedido #' + pedido.numero + ' restaurado.';
+            enfocarDespues = '#aviso'; irA('confirmacion'); break;
+        }
+      });
+
+      document.addEventListener('submit', function (ev) {
+        ev.preventDefault();
+        if (ev.target.id === 'form-pedido') {
+          datos.nombre = $('f-nombre').value; datos.hora = $('f-hora').value;
+          errores = validarPedido(); aviso = ''; conflicto = null; deshacerQuitar = false;
+          if (Object.keys(errores).length) {
+            pintar(); var r = $('resumen-errores'); if (r) r.focus(); anunciar('Hay datos por corregir.');
+          } else { irA('procesando'); }
+        } else if (ev.target.id === 'form-hora') {
+          var nueva = $('f-hora').value; datos.horaNueva = nueva; errores = {};
+          if (!nueva) errores.hora = 'Elige la nueva hora de retiro de la lista.';
+          else if (nueva === pedido.hora) errores.hora = 'Ya retiras a las ' + nueva + '. Elige una hora distinta.';
+          if (Object.keys(errores).length) { pintar(); var r2 = $('resumen-errores'); if (r2) r2.focus(); anunciar('No se pudo cambiar la hora.'); }
+          else {
+            pedido.hora = nueva; datos.hora = nueva; datos.horaNueva = '';
+            aviso = 'Hora de retiro actualizada a las ' + nueva + '.'; enfocarDespues = '#aviso'; irA('confirmacion');
+          }
+        }
+      });
+
+      document.addEventListener('input', function (ev) {
+        if (ev.target.id === 'buscar') {
+          busqueda = ev.target.value;
+          var q = busqueda.trim().toLowerCase();
+          var n = CATALOGO.filter(function (p) { return (filtro === 'todo' || p.cat === filtro) && (!q || (p.nombre + ' ' + p.resumen).toLowerCase().indexOf(q) >= 0); }).length;
+          var pos = ev.target.selectionStart;
+          pintar(); var b = $('buscar'); b.focus(); try { b.setSelectionRange(pos, pos); } catch (x) {}
+        } else if (ev.target.id === 'f-nombre' && errores.nombre && ev.target.value.trim().length >= 2) {
+          datos.nombre = ev.target.value; delete errores.nombre; var p0 = ev.target.selectionStart; pintar(); var f = $('f-nombre'); f.focus(); try { f.setSelectionRange(p0, p0); } catch (x) {}
+        } else if (ev.target.id === 'f-nombre') { datos.nombre = ev.target.value; }
+      });
+      document.addEventListener('change', function (ev) {
+        if (ev.target.id === 'f-hora' && pantalla === 'pedido') { datos.hora = ev.target.value; if (errores.hora && datos.hora) { delete errores.hora; rerender('#f-hora'); } }
+      });
+
+      document.querySelector('.skip').addEventListener('click', function (ev) { ev.preventDefault(); main.focus(); });
+      $('dlg-cancelar').addEventListener('click', function (ev) { if (ev.target === this) this.close(); });
+      window.addEventListener('hashchange', function () { if (desdeHash() !== pantalla) mostrar(desdeHash()); });
+      mostrar(desdeHash());
+    })();
+  </script>
+</body>
+</html>
