@@ -1,0 +1,28 @@
+ronda,version,participante,tarea,exito,tiempo_s,errores,observacion
+1,v2,P01,T1,S,38,0,Encontró Café americano en el menú y subió la cantidad a 2 desde el detalle
+1,v2,P01,T2,N,95,2,Buscó dónde indicar nombre y hora de retiro; no existe el campo y confirmó sin esos datos
+1,v2,P01,T3,S,22,0,Leyó el número de pedido #CU-104 sin dudar
+1,v2,P01,T4,N,70,1,Buscó Cancelar o Cambiar hora en la confirmación; solo encontró Volver al menú
+1,v2,P02,T1,S,52,1,Pulsó Mi pedido antes de agregar y vio el pedido vacío; volvió al menú
+1,v2,P02,T2,N,110,2,Pidió ayuda sobre cómo decir a qué hora retira; no halló dónde escribirlo
+1,v2,P02,T3,S,28,0,Identificó la confirmación por el aviso verde
+1,v2,P02,T4,N,85,1,Comentó que tendría que llamar a la cafetería para cambiar el pedido
+1,v2,P03,T1,S,74,2,Usó solo teclado; tras Ver menú el foco quedó en un botón oculto y tuvo que tabular desde el inicio
+1,v2,P03,T2,N,80,1,Sin campos para nombre y hora; confirmó el pedido sin ellos
+1,v2,P03,T3,S,31,1,No hubo aviso al cambiar de pantalla; confirmó mirando la pantalla
+1,v2,P03,T4,N,60,0,No encontró ninguna opción para modificar el pedido confirmado
+2,v3,P04,T1,S,31,0,Usó la búsqueda con las letras caf y abrió el detalle
+2,v3,P04,T2,S,78,1,Dejó el nombre vacío; el resumen de errores lo llevó directo al campo
+2,v3,P04,T3,S,18,0,Leyó el número #CU-104 y la hora de retiro en el resumen
+2,v3,P04,T4,S,40,0,Cambió la hora de retiro a 12:00 desde la confirmación
+2,v3,P04,T5,S,72,1,La empanada se agotó al confirmar; eligió Cambiar por Sanduche de queso
+2,v3,P05,T1,S,35,0,Filtró por Bebidas y abrió el detalle
+2,v3,P05,T2,S,66,2,No eligió hora ni escribió nombre; corrigió ambos desde el resumen de errores
+2,v3,P05,T3,S,21,0,Vio el aviso verde y el número de pedido
+2,v3,P05,T4,S,52,1,Abrió Cancelar pedido por error; usó No mantener mi pedido y luego cambió la hora
+2,v3,P05,T5,S,61,0,Al agotarse la empanada eligió Quitar y continuar
+2,v3,P06,T1,S,49,0,Solo teclado; el foco llegó al título de cada pantalla sin perderse
+2,v3,P06,T2,S,90,1,Eligió la hora con las flechas; olvidó el nombre y lo corrigió con el aviso
+2,v3,P06,T3,S,24,0,Confirmó el número de pedido sin ayuda
+2,v3,P06,T4,N,75,2,Pulsó Mantener la hora actual esperando guardar el cambio; la hora no cambió
+2,v3,P06,T5,S,95,2,Dudó entre quitar y cambiar el producto agotado; eligió quitar
